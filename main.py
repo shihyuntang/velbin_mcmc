@@ -36,6 +36,17 @@ def ln_pmra(x, pmra, sig_pmra):
                         (1-f_c)* np.exp(-(pmra - pmra_mean_f) ** 2 / (2 * (sig_pmra ** 2. + pmra_disp_f ** 2.))) / np.sqrt(2 * np.pi * (sig_pmra** 2. + pmra_disp_f ** 2.))
 
     return np.sum(np.log(likelihood_single))
+
+
+def ln_pmdec(x, pmdec, sig_pmdec):
+    f_c  = 0.95
+    pmdec_mean, pmdec_disp, pmdec_mean_f, pmdec_disp_f = x
+    likelihood_single = f_c    * np.exp(-(pmdec - pmdec_mean) ** 2 / (2 * (sig_pmdec ** 2. + pmdec_disp ** 2.))) / np.sqrt(2 * np.pi * (sig_pmdec ** 2. + pmdec_disp ** 2.)) + \
+                        (1-f_c)* np.exp(-(pmdec - pmdec_mean_f) ** 2 / (2 * (sig_pmdec ** 2. + pmdec_disp_f ** 2.))) / np.sqrt(2 * np.pi * (sig_pmdec** 2. + pmdec_disp_f ** 2.))
+
+    return np.sum(np.log(likelihood_single))
+
+
 # def ob_stars(args, source, pmax=None, nbinaries):
 #     """Returns a randomly generated dataset of `nbinaries` OB spectroscopic binaries.
 #
@@ -104,6 +115,19 @@ if __name__ == "__main__":
                         help="field velocity dispersion of the cluster in km/s",
                         type=str,   default='' )
 
+    parser.add_argument('-pmdec_mean',       dest="pmdec_mean",         action="store",
+                        help="mean velocity of the cluster in km/s",
+                        type=str,   default='' )
+    parser.add_argument('-pmdec_disp',       dest="pmdec_disp",         action="store",
+                        help="velocity dispersion of the cluster in km/s",
+                        type=str,   default='' )
+    parser.add_argument('-pmdec_mean_f',       dest="pmdec_mean_f",         action="store",
+                        help="field mean velocity of the cluster in km/s",
+                        type=str,   default='' )
+    parser.add_argument('-pmdec_disp_f',       dest="pmdec_disp_f",         action="store",
+                        help="field velocity dispersion of the cluster in km/s",
+                        type=str,   default='' )
+
     #---- optional inputs ----
     parser.add_argument('-mode',       dest="mode",         action="store",
                         help="'solar' OR 'ob_stars'. Default='solar'",
@@ -168,18 +192,36 @@ if __name__ == "__main__":
         print(f'RV maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}\n')
 
         #-----------------------------------------------------------------------------------
-        print('Now finding the maximum likelihood for pmRA...')
-        nll = lambda *argsss: -ln_pmra(*argsss)
+        if args.pmra_disp !='':
+            print('Now finding the maximum likelihood for pmRA...')
+            nll = lambda *argsss: -ln_pmra(*argsss)
 
-        # initial guess --------
-        initial = np.array([np.float(args.pmra_mean),
-                            np.float(args.pmra_disp),
-                            np.float(args.pmra_mean_f),
-                            np.float(args.pmra_disp_f)]).T # initial samples
+            # initial guess --------
+            initial = np.array([np.float(args.pmra_mean),
+                                np.float(args.pmra_disp),
+                                np.float(args.pmra_mean_f),
+                                np.float(args.pmra_disp_f)]).T # initial samples
 
-        soln = opti.minimize(nll, initial, args=(pmra, epmra))
-        max_vmean, max_vdisp, max_vmean_f, max_vdisp_f = soln.x
-        print(f'pmRA maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}')
+            soln = opti.minimize(nll, initial, args=(pmra, epmra))
+            max_vmean, max_vdisp, max_vmean_f, max_vdisp_f = soln.x
+            print(f'pmRA maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}\n')
+
+
+
+        #-----------------------------------------------------------------------------------
+        if args.pmdec_disp !='':
+            print('Now finding the maximum likelihood for pmDEC...')
+            nll = lambda *argsss: -ln_pmdec(*argsss)
+
+            # initial guess --------
+            initial = np.array([np.float(args.pmdec_mean),
+                                np.float(args.pmdec_disp),
+                                np.float(args.pmdec_mean_f),
+                                np.float(args.pmdec_disp_f)]).T # initial samples
+
+            soln = opti.minimize(nll, initial, args=(pmdec, epmdec))
+            max_vmean, max_vdisp, max_vmean_f, max_vdisp_f = soln.x
+            print(f'pmDEC maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}')
 
         print('Program finished')
 
