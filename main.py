@@ -28,6 +28,14 @@ def solar(args, nbinaries):
     properties.draw_eccentricities(args)
     return properties
 
+
+def ln_pmra(x, pmra, sig_pmra):
+    f_c  = 0.95
+    pmra_mean, pmra_disp, pmra_mean_f, pmra_disp_f = x
+    likelihood_single = f_c    * np.exp(-(pmra - pmra_mean) ** 2 / (2 * (sig_pmra ** 2. + pmra_disp ** 2.))) / np.sqrt(2 * np.pi * (sig_pmra ** 2. + pmra_disp ** 2.)) + \
+                        (1-f_c)* np.exp(-(pmra - pmra_mean_f) ** 2 / (2 * (sig_pmra ** 2. + pmra_disp_f ** 2.))) / np.sqrt(2 * np.pi * (sig_pmra** 2. + pmra_disp_f ** 2.))
+
+    return np.sum(np.log(likelihood_single))
 # def ob_stars(args, source, pmax=None, nbinaries):
 #     """Returns a randomly generated dataset of `nbinaries` OB spectroscopic binaries.
 #
@@ -83,6 +91,19 @@ if __name__ == "__main__":
                         help="binary fraction of the stars in the cluster.",
                         type=str,   default='' )
 
+    parser.add_argument('-pmra_mean',       dest="pmra_mean",         action="store",
+                        help="mean velocity of the cluster in km/s",
+                        type=str,   default='' )
+    parser.add_argument('-pmra_disp',       dest="pmra_disp",         action="store",
+                        help="velocity dispersion of the cluster in km/s",
+                        type=str,   default='' )
+    parser.add_argument('-pmra_mean_f',       dest="pmra_mean_f",         action="store",
+                        help="field mean velocity of the cluster in km/s",
+                        type=str,   default='' )
+    parser.add_argument('-pmra_disp_f',       dest="pmra_disp_f",         action="store",
+                        help="field velocity dispersion of the cluster in km/s",
+                        type=str,   default='' )
+
     #---- optional inputs ----
     parser.add_argument('-mode',       dest="mode",         action="store",
                         help="'solar' OR 'ob_stars'. Default='solar'",
@@ -116,10 +137,14 @@ if __name__ == "__main__":
 
     velocity = np.array(dataclean['RV_tb2'])
     sigvel   = np.array(dataclean['e_RV_tb2'])
-    # mass     = np.ones(len(dataclean))
     mass     = dataclean['Mass']
 
-    #---- mode ---
+    pmra   = np.array(dataorg['pmra'])
+    epmra   = np.array(dataorg['pmra_error'])
+    pmdec   = np.array(dataorg['pmdec'])
+    epmdec   = np.array(dataorg['pmdec_error'])
+
+    #---- mode ----
     nbinaries = np.int(1e6)
     if args.mode.lower() == 'solar':
         all_binaries = solar(args, nbinaries=nbinaries )
@@ -128,13 +153,10 @@ if __name__ == "__main__":
         lnlike = all_binaries.single_epoch(velocity, sigvel, mass, log_minv=-3, log_maxv=None, log_stepv=0.02)
 
         #-----------
-        print('Now finding the maximum likelihood...')
-        np.random.seed(42)
+        print('Now finding the maximum likelihood for RV...')
         nll = lambda *argsss: -lnlike(*argsss)
 
         # initial guess --------
-        # initial = np.array([np.float(args.vmean),
-        #                     np.float(args.vdisp)]).T # initial samples
         initial = np.array([np.float(args.vmean),
                             np.float(args.vdisp),
                             np.float(args.fbin),
@@ -142,11 +164,25 @@ if __name__ == "__main__":
                             np.float(args.vdisp_f)  ]).T # initial samples
 
         soln = opti.minimize(nll, initial)
-        # max_vmean, max_vdisp= soln.x
         max_vmean, max_vdisp, max_fbin, max_vmean_f, max_vdisp_f = soln.x
-        # print(f'maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}')
-        print(f'maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}')
+        print(f'RV maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}\n')
+
+        #-----------------------------------------------------------------------------------
+        print('Now finding the maximum likelihood for pmRA...')
+        nll = lambda *argsss: -ln_pmra(*argsss)
+
+        # initial guess --------
+        initial = np.array([np.float(args.pmra_mean),
+                            np.float(args.pmra_disp),
+                            np.float(args.pmra_mean_f),
+                            np.float(args.pmra_disp_f)]).T # initial samples
+
+        soln = opti.minimize(nll, initial, args=(pmra, epmra))
+        max_vmean, max_vdisp, max_vmean_f, max_vdisp_f = soln.x
+        print(f'pmRA maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}')
+
         print('Program finished')
+
         # print(BinaryObj(velocity, sigvel, mass))
         # print(all_binaries.arr['mass_ratio'])
 
