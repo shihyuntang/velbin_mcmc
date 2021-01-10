@@ -146,6 +146,7 @@ if __name__ == "__main__":
         max_vmean, max_vdisp, max_fbin, max_vmean_f, max_vdisp_f = soln.x
         # print(f'maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}')
         print(f'maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}')
+        print('Program finished')
         # print(BinaryObj(velocity, sigvel, mass))
         # print(all_binaries.arr['mass_ratio'])
 
