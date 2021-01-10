@@ -163,10 +163,10 @@ if __name__ == "__main__":
     sigvel   = np.array(dataclean['e_RV_tb2'])
     mass     = dataclean['Mass']
 
-    pmra   = np.array(dataorg['pmra'])
-    epmra   = np.array(dataorg['pmra_error'])
-    pmdec   = np.array(dataorg['pmdec'])
-    epmdec   = np.array(dataorg['pmdec_error'])
+    pmra   = np.array(dataclean['pmra'])
+    epmra   = np.array(dataclean['pmra_error'])
+    pmdec   = np.array(dataclean['pmdec'])
+    epmdec   = np.array(dataclean['pmdec_error'])
 
     #---- mode ----
     nbinaries = np.int(1e6)
