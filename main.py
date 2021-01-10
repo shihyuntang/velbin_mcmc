@@ -73,9 +73,16 @@ if __name__ == "__main__":
     parser.add_argument('-vdisp',       dest="vdisp",         action="store",
                         help="velocity dispersion of the cluster in km/s",
                         type=str,   default='' )
+    parser.add_argument('-vmean_f',       dest="vmean_f",         action="store",
+                        help="field mean velocity of the cluster in km/s",
+                        type=str,   default='' )
+    parser.add_argument('-vdisp_f',       dest="vdisp_f",         action="store",
+                        help="field velocity dispersion of the cluster in km/s",
+                        type=str,   default='' )
     parser.add_argument('-fbin',       dest="fbin",         action="store",
                         help="binary fraction of the stars in the cluster.",
                         type=str,   default='' )
+
     #---- optional inputs ----
     parser.add_argument('-mode',       dest="mode",         action="store",
                         help="'solar' OR 'ob_stars'. Default='solar'",
@@ -126,13 +133,19 @@ if __name__ == "__main__":
         nll = lambda *argsss: -lnlike(*argsss)
 
         # initial guess --------
+        # initial = np.array([np.float(args.vmean),
+        #                     np.float(args.vdisp)]).T # initial samples
         initial = np.array([np.float(args.vmean),
                             np.float(args.vdisp),
-                            np.float(args.fbin)  ]).T # initial samples
+                            np.float(args.fbin),
+                            np.float(args.vmean_f),
+                            np.float(args.vdisp_f)  ]).T # initial samples
 
         soln = opti.minimize(nll, initial)
-        max_vmean, max_vdisp, max_fbin = soln.x
-        print(f'maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}')
+        # max_vmean, max_vdisp= soln.x
+        max_vmean, max_vdisp, max_fbin, max_vmean_f, max_vdisp_f = soln.x
+        # print(f'maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}')
+        print(f'maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}')
         # print(BinaryObj(velocity, sigvel, mass))
         # print(all_binaries.arr['mass_ratio'])
 

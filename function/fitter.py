@@ -48,7 +48,8 @@ class BinaryFit(object):
         else:
             self.is_single = is_single
 
-    def individual_log_likelihood(self, vmean, vdisp, fbin):
+    def individual_log_likelihood(self, vmean, vdisp, fbin, vmean_f, vdisp_f):
+        f_c = 0.95
         """Computes array with the individual log-likelihoods for observing the (average) radial velocity of the observed (seemingly single) stars.
 
         Call the object for the total log-likelihood (which includes a contribution from RV-variables).
@@ -57,13 +58,18 @@ class BinaryFit(object):
         - `vmean`: mean velocity of the cluster in km/s.
         - `vdisp`: velocity dispersion of the cluster in km/s.
         - `fbin`: binary fraction of the stars in the cluster.
+        - `vmean_f`: field mean velocity of the cluster in km/s.
+        - `vdisp_f`: field velocity dispersion of the cluster in km/s.
         """
-        vmean_all, vdisp_all, fbin_all = [np.asarray(variable) for variable in [vmean, vdisp, fbin]]
-        vmean, vdisp, fbin = [variable[self.is_single] if variable.size > 1 else variable for variable in [vmean_all, vdisp_all, fbin_all]]
+        vmean_all, vdisp_all, fbin_all, vmean_f_all, vdisp_f_all  = [np.asarray(variable) for variable in [vmean, vdisp, fbin, vmean_f, vdisp_f]]
+        vmean, vdisp, fbin, vmean_f, vdisp_f = [variable[self.is_single] if variable.size > 1 else variable for variable in [vmean_all, vdisp_all, fbin_all, vmean_f_all, vdisp_f_all]]
 
         nvel = len(self.velocity)
         fbin_new = fbin * (1 - self.pdet_single) / (1 - fbin * self.pdet_single)
         likelihood_single = np.exp(-(self.velocity - vmean) ** 2 / (2 * (self.sigvel ** 2. + vdisp ** 2.))) / np.sqrt(2 * np.pi * (self.sigvel ** 2. + vdisp ** 2.))
+
+        likelihood_single = f_c    *sp.exp(-(self.velocity - vmean) ** 2 / (2 * (self.sigvel ** 2. + vdisp ** 2.))) / sp.sqrt(2 * sp.pi * (self.sigvel ** 2. + vdisp ** 2.)) +  \
+                            (1-f_c)*sp.exp(-(self.velocity - vmean_f) ** 2 / (2 * (self.sigvel ** 2. + vdisp_f ** 2.))) / sp.sqrt(2 * sp.pi * (self.sigvel ** 2. + vdisp_f ** 2.))
 
         p_bound = sp.special.erf((vmean + self.vbin[1:-1, None] * self.mass ** (1. / 3.) - self.velocity) / np.sqrt(2. * (self.sigvel ** 2. + vdisp ** 2.))) * .5 + .5
         p_long = np.append(np.append(np.zeros((1, nvel)), p_bound, 0), np.ones((1, nvel)), 0)
@@ -87,7 +93,8 @@ class BinaryFit(object):
         return np.sum(np.log(1 - fbin_sin * self.pdet_single)) + np.sum(np.log(fbin_mult * self.pdet_rvvar))
 
     def __call__(self, x):
-        vmean, vdisp, fbin = x
+        # vmean, vdisp, fbin = x
+        vmean, vdisp, fbin, vmean_f, vdisp_f = x
         """Returns the log-likelihood that the observed radial velocity data is reproduced for a cluster with given parameters.
 
         Maximizing the returned value gives the best-fit parameters for vmean, vdisp, and fbin (assuming flat priors). These parameters can be single floats or arrays of the length of the original input velocity array.
@@ -97,4 +104,5 @@ class BinaryFit(object):
         - `vdisp`: velocity dispersion of the cluster in km/s.
         - `fbin`: binary fraction of the stars in the cluster.
         """
-        return np.sum(self.individual_log_likelihood(vmean, vdisp, fbin)) + self.log_likelihood_detection(fbin)
+        # fbin_fix = 0.5
+        return np.sum(self.individual_log_likelihood(vmean, vdisp, fbin, vmean_f, vdisp_f)) + self.log_likelihood_detection(fbin)
