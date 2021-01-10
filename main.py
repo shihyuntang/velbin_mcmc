@@ -109,8 +109,8 @@ if __name__ == "__main__":
 
     velocity = np.array(dataclean['RV_tb2'])
     sigvel   = np.array(dataclean['e_RV_tb2'])
-    mass     = np.ones(len(dataclean))
-    # mass     = dataclean['mass']
+    # mass     = np.ones(len(dataclean))
+    mass     = dataclean['Mass']
 
     #---- mode ---
     nbinaries = np.int(1e6)

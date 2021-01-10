@@ -70,7 +70,7 @@ class BinaryFit(object):
         weight = p_long[1:, :] - p_long[:-1, :]
         likelihood_binary = np.sum(self.pbin * weight / self.mass ** (1. / 3.), 0)
 
-        print(np.log(fbin_new * likelihood_binary + (1 - fbin_new) * likelihood_single))
+        # print(np.log(fbin_new * likelihood_binary + (1 - fbin_new) * likelihood_single))
         return np.log(fbin_new * likelihood_binary + (1 - fbin_new) * likelihood_single)
 
     def log_likelihood_detection(self, fbin):
