@@ -158,7 +158,16 @@ if __name__ == "__main__":
     #     sys.exit('missing values for "-vdisp", you must give a initial guess')
     # if args.fbin == '':
     #     sys.exit('missing values for "-fbin", you must give a initial guess')
-    vmean, vdisp, vmean_f, vdisp_f, fbin = np.array(ast.literal_eval(args.rv),  dtype=str)
+
+    unpackRV = np.array(ast.literal_eval(args.rv),  dtype=str)
+    if len(unpackRV)==5:
+        vmean, vdisp, vmean_f, vdisp_f, fbin = np.array(ast.literal_eval(args.rv),  dtype=str)
+        F_yn = 1
+        print('Do the field star fit...')
+    else:
+        vmean, vdisp, fbin = np.array(ast.literal_eval(args.rv),  dtype=str)
+        F_yn = 0
+        print('Skip the field star fit...')
 
     #---- inpur data ----
     dataorg = Table.read('./Input/{}.fits'.format(args.filename))
@@ -181,22 +190,34 @@ if __name__ == "__main__":
         all_binaries = solar(args, nbinaries=nbinaries )
 
         print('Using the "single_epoch" mode to fit... \n')
-        lnlike = all_binaries.single_epoch(velocity, sigvel, mass, log_minv=-3, log_maxv=None, log_stepv=0.02)
+
+        lnlike = all_binaries.single_epoch(velocity, sigvel, mass, F_yn, log_minv=-3, log_maxv=None, log_stepv=0.02)
 
         #-----------
         print('Now finding the maximum likelihood for RV...')
         nll = lambda *argsss: -lnlike(*argsss)
 
-        # initial guess --------
-        initial = np.array([np.float(vmean),
-                            np.float(vdisp),
-                            np.float(fbin),
-                            np.float(vmean_f),
-                            np.float(vdisp_f)  ]).T # initial samples
+        if F_yn ==1:
+            # initial guess --------
+            initial = np.array([np.float(vmean),
+                                np.float(vdisp),
+                                np.float(fbin),
+                                np.float(vmean_f),
+                                np.float(vdisp_f)  ]).T # initial samples
 
-        soln = opti.minimize(nll, initial)
-        max_vmean, max_vdisp, max_fbin, max_vmean_f, max_vdisp_f = soln.x
-        print(f'RV maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}\n')
+            soln = opti.minimize(nll, initial)
+            max_vmean, max_vdisp, max_fbin, max_vmean_f, max_vdisp_f = soln.x
+            print(f'RV maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}\n')
+
+        elif F_yn ==0:
+            # initial guess --------
+            initial = np.array([np.float(vmean),
+                                np.float(vdisp),
+                                np.float(fbin)  ]).T # initial samples
+
+            soln = opti.minimize(nll, initial)
+            max_vmean, max_vdisp, max_fbin = soln.x
+            print(f'RV maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}\n')
 
         #-----------------------------------------------------------------------------------
         if args.pmra !='':

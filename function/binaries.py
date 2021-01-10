@@ -194,7 +194,7 @@ class OrbitalParameters:
         velocity = np.array([vlos, vperp]) * self.semi_major(mass) / (self.arr['period'] * (1 + 1 / self.arr['mass_ratio'])) * 4.74057581
         return velocity
 
-    def single_epoch(self, velocity, sigvel, mass, log_minv=-3, log_maxv=None, log_stepv=0.02):
+    def single_epoch(self, velocity, sigvel, mass, F_yn, log_minv=-3, log_maxv=None, log_stepv=0.02):
         """Returns a callable Basefitter which computes the log-likelihood to reproduce the observed single-epoch radial velocity distribution.
 
         Uses the current settings of the binary properties to calculate the distribution of radial velocity offsets due to binary orbital motions.
@@ -234,7 +234,11 @@ class OrbitalParameters:
         vbound = np.append(-vbord[::-1], np.append(0, vbord))
         prob = np.append(pdist[::-1], pdist) / 2.  / len(vel)
 
-        return BinaryFit(velocity, sigvel, mass, vbound, prob)
+        if F_yn == 1:
+            return BinaryFit(velocity, sigvel, mass, vbound, prob)
+        else:
+            return BinaryFit_noF(velocity, sigvel, mass, vbound, prob)
+        # return BinaryFit(velocity, sigvel, mass, vbound, prob)
 
     def multi_epoch(self, velocity, sigvel, mass, dates, pfalse=1e-4, log_minv=-3, log_maxv=4, log_stepv=0.02):
         """Returns a callable Basefitter which computes the log-likelihood to reproduce the observed multi-epoch radial velocity distribution.
