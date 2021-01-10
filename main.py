@@ -1,5 +1,5 @@
 import numpy as np
-import sys, os, argparse
+import sys, os, argparse, ast
 import itertools
 from  function.binaries import *
 # from  function.fitter import *
@@ -86,47 +86,52 @@ if __name__ == "__main__":
                         type=str,   default='' )
 
     #---- must inputs ----
-    parser.add_argument('-vmean',       dest="vmean",         action="store",
-                        help="mean velocity of the cluster in km/s",
-                        type=str,   default='' )
-    parser.add_argument('-vdisp',       dest="vdisp",         action="store",
-                        help="velocity dispersion of the cluster in km/s",
-                        type=str,   default='' )
-    parser.add_argument('-vmean_f',       dest="vmean_f",         action="store",
-                        help="field mean velocity of the cluster in km/s",
-                        type=str,   default='' )
-    parser.add_argument('-vdisp_f',       dest="vdisp_f",         action="store",
-                        help="field velocity dispersion of the cluster in km/s",
-                        type=str,   default='' )
-    parser.add_argument('-fbin',       dest="fbin",         action="store",
-                        help="binary fraction of the stars in the cluster.",
+    parser.add_argument('-rv',       dest="rv",         action="store",
+                        help="RV initial parameters [vmean,vdisp,vmean_f,vdisp_f,fbin]",
                         type=str,   default='' )
 
-    parser.add_argument('-pmra_mean',       dest="pmra_mean",         action="store",
-                        help="mean velocity of the cluster in km/s",
-                        type=str,   default='' )
-    parser.add_argument('-pmra_disp',       dest="pmra_disp",         action="store",
-                        help="velocity dispersion of the cluster in km/s",
-                        type=str,   default='' )
-    parser.add_argument('-pmra_mean_f',       dest="pmra_mean_f",         action="store",
-                        help="field mean velocity of the cluster in km/s",
-                        type=str,   default='' )
-    parser.add_argument('-pmra_disp_f',       dest="pmra_disp_f",         action="store",
-                        help="field velocity dispersion of the cluster in km/s",
-                        type=str,   default='' )
+    # parser.add_argument('-vmean',       dest="vmean",         action="store",
+    #                     help="mean velocity of the cluster in km/s",
+    #                     type=str,   default='' )
+    # parser.add_argument('-vdisp',       dest="vdisp",         action="store",
+    #                     help="velocity dispersion of the cluster in km/s",
+    #                     type=str,   default='' )
+    # parser.add_argument('-vmean_f',       dest="vmean_f",         action="store",
+    #                     help="field mean velocity of the cluster in km/s",
+    #                     type=str,   default='' )
+    # parser.add_argument('-vdisp_f',       dest="vdisp_f",         action="store",
+    #                     help="field velocity dispersion of the cluster in km/s",
+    #                     type=str,   default='' )
+    # parser.add_argument('-fbin',       dest="fbin",         action="store",
+    #                     help="binary fraction of the stars in the cluster.",
+    #                     type=str,   default='' )
 
-    parser.add_argument('-pmdec_mean',       dest="pmdec_mean",         action="store",
-                        help="mean velocity of the cluster in km/s",
+    parser.add_argument('-pmra',       dest="pmra",         action="store",
+                        help="pmRA initial parameters [mean,dispertion,mean_f,dispertion_f]",
                         type=str,   default='' )
-    parser.add_argument('-pmdec_disp',       dest="pmdec_disp",         action="store",
-                        help="velocity dispersion of the cluster in km/s",
-                        type=str,   default='' )
-    parser.add_argument('-pmdec_mean_f',       dest="pmdec_mean_f",         action="store",
-                        help="field mean velocity of the cluster in km/s",
-                        type=str,   default='' )
-    parser.add_argument('-pmdec_disp_f',       dest="pmdec_disp_f",         action="store",
-                        help="field velocity dispersion of the cluster in km/s",
-                        type=str,   default='' )
+    # parser.add_argument('-pmra_disp',       dest="pmra_disp",         action="store",
+    #                     help="velocity dispersion of the cluster in km/s",
+    #                     type=str,   default='' )
+    # parser.add_argument('-pmra_mean_f',       dest="pmra_mean_f",         action="store",
+    #                     help="field mean velocity of the cluster in km/s",
+    #                     type=str,   default='' )
+    # parser.add_argument('-pmra_disp_f',       dest="pmra_disp_f",         action="store",
+    #                     help="field velocity dispersion of the cluster in km/s",
+    #                     type=str,   default='' )
+
+    parser.add_argument('-pmdec',       dest="pmdec",         action="store",
+                        help="pmDEC initial parameters [mean,dispertion,mean_f,dispertion_f]",
+                         type=str,   default='' )
+
+    # parser.add_argument('-pmdec_disp',       dest="pmdec_disp",         action="store",
+    #                     help="velocity dispersion of the cluster in km/s",
+    #                     type=str,   default='' )
+    # parser.add_argument('-pmdec_mean_f',       dest="pmdec_mean_f",         action="store",
+    #                     help="field mean velocity of the cluster in km/s",
+    #                     type=str,   default='' )
+    # parser.add_argument('-pmdec_disp_f',       dest="pmdec_disp_f",         action="store",
+    #                     help="field velocity dispersion of the cluster in km/s",
+    #                     type=str,   default='' )
 
     #---- optional inputs ----
     parser.add_argument('-mode',       dest="mode",         action="store",
@@ -147,12 +152,13 @@ if __name__ == "__main__":
 
 
     #---- check must inputs ----
-    if args.vmean == '':
-        sys.exit('missing values for "-vmean", you must give a initial guess')
-    if args.vdisp == '':
-        sys.exit('missing values for "-vdisp", you must give a initial guess')
-    if args.fbin == '':
-        sys.exit('missing values for "-fbin", you must give a initial guess')
+    # if args.vmean == '':
+    #     sys.exit('missing values for "-vmean", you must give a initial guess')
+    # if args.vdisp == '':
+    #     sys.exit('missing values for "-vdisp", you must give a initial guess')
+    # if args.fbin == '':
+    #     sys.exit('missing values for "-fbin", you must give a initial guess')
+    vmean, vdisp, vmean_f, vdisp_f, fbin = np.array(ast.literal_eval(args.rv),  dtype=str)
 
     #---- inpur data ----
     dataorg = Table.read('./Input/{}.fits'.format(args.filename))
@@ -168,6 +174,7 @@ if __name__ == "__main__":
     pmdec   = np.array(dataclean['pmdec'])
     epmdec   = np.array(dataclean['pmdec_error'])
 
+    #--------------
     #---- mode ----
     nbinaries = np.int(1e6)
     if args.mode.lower() == 'solar':
@@ -181,26 +188,28 @@ if __name__ == "__main__":
         nll = lambda *argsss: -lnlike(*argsss)
 
         # initial guess --------
-        initial = np.array([np.float(args.vmean),
-                            np.float(args.vdisp),
-                            np.float(args.fbin),
-                            np.float(args.vmean_f),
-                            np.float(args.vdisp_f)  ]).T # initial samples
+        initial = np.array([np.float(vmean),
+                            np.float(vdisp),
+                            np.float(fbin),
+                            np.float(vmean_f),
+                            np.float(vdisp_f)  ]).T # initial samples
 
         soln = opti.minimize(nll, initial)
         max_vmean, max_vdisp, max_fbin, max_vmean_f, max_vdisp_f = soln.x
         print(f'RV maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}\n')
 
         #-----------------------------------------------------------------------------------
-        if args.pmra_disp !='':
+        if args.pmra !='':
             print('Now finding the maximum likelihood for pmRA...')
+            pmra_mean, pmra_disp, pmra_mean_f, pmra_disp_f     = np.array(ast.literal_eval(args.pmra),  dtype=str)
+
             nll = lambda *argsss: -ln_pmra(*argsss)
 
             # initial guess --------
-            initial = np.array([np.float(args.pmra_mean),
-                                np.float(args.pmra_disp),
-                                np.float(args.pmra_mean_f),
-                                np.float(args.pmra_disp_f)]).T # initial samples
+            initial = np.array([np.float(pmra_mean),
+                                np.float(pmra_disp),
+                                np.float(pmra_mean_f),
+                                np.float(pmra_disp_f)]).T # initial samples
 
             soln = opti.minimize(nll, initial, args=(pmra, epmra))
             max_vmean, max_vdisp, max_vmean_f, max_vdisp_f = soln.x
@@ -209,15 +218,17 @@ if __name__ == "__main__":
 
 
         #-----------------------------------------------------------------------------------
-        if args.pmdec_disp !='':
+        if args.pmdec !='':
             print('Now finding the maximum likelihood for pmDEC...')
+            pmdec_mean, pmdec_disp, pmdec_mean_f, pmdec_disp_f = np.array(ast.literal_eval(args.pmdec), dtype=str)
+
             nll = lambda *argsss: -ln_pmdec(*argsss)
 
             # initial guess --------
-            initial = np.array([np.float(args.pmdec_mean),
-                                np.float(args.pmdec_disp),
-                                np.float(args.pmdec_mean_f),
-                                np.float(args.pmdec_disp_f)]).T # initial samples
+            initial = np.array([np.float(pmdec_mean),
+                                np.float(pmdec_disp),
+                                np.float(pmdec_mean_f),
+                                np.float(pmdec_disp_f)]).T # initial samples
 
             soln = opti.minimize(nll, initial, args=(pmdec, epmdec))
             max_vmean, max_vdisp, max_vmean_f, max_vdisp_f = soln.x

@@ -66,7 +66,7 @@ class BinaryFit(object):
 
         nvel = len(self.velocity)
         fbin_new = fbin * (1 - self.pdet_single) / (1 - fbin * self.pdet_single)
-        likelihood_single = np.exp(-(self.velocity - vmean) ** 2 / (2 * (self.sigvel ** 2. + vdisp ** 2.))) / np.sqrt(2 * np.pi * (self.sigvel ** 2. + vdisp ** 2.))
+        #likelihood_single = np.exp(-(self.velocity - vmean) ** 2 / (2 * (self.sigvel ** 2. + vdisp ** 2.))) / np.sqrt(2 * np.pi * (self.sigvel ** 2. + vdisp ** 2.))
 
         likelihood_single = f_c    *sp.exp(-(self.velocity - vmean) ** 2 / (2 * (self.sigvel ** 2. + vdisp ** 2.))) / sp.sqrt(2 * sp.pi * (self.sigvel ** 2. + vdisp ** 2.)) +  \
                             (1-f_c)*sp.exp(-(self.velocity - vmean_f) ** 2 / (2 * (self.sigvel ** 2. + vdisp_f ** 2.))) / sp.sqrt(2 * sp.pi * (self.sigvel ** 2. + vdisp_f ** 2.))
