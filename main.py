@@ -6,7 +6,15 @@ from  function.binaries import *
 
 from astropy.table import Table
 from scipy import optimize as opti
+from multiprocessing import Pool
 
+import corner, emcee
+import matplotlib.pyplot as plt
+fig_dpi      = 300
+fig_typeface = 'Helvetica'
+# fig_family   = 'sans-serif'
+fig_family   = 'monospace'
+fig_style    = 'normal'
 
 
 def solar(args, nbinaries):
@@ -46,6 +54,34 @@ def ln_pmdec(x, pmdec, sig_pmdec):
 
     return np.sum(np.log(likelihood_single))
 
+#??
+def lnprior_pmdec(x, pmdec, sig_pmdec):
+    pmdec_mean, pmdec_disp, pmdec_mean_f, pmdec_disp_f = x
+
+    # Uniform prior
+    uni_pmdec_mean   = (pmdec_mean   > 20 ) & (pmdec_mean   < 25 )
+    uni_pmdec_disp   = (pmdec_disp   > 0.46) & (pmdec_disp   < 0.86)
+    uni_pmdec_mean_f = (pmdec_mean_f > 20)  & (pmdec_mean_f < 25)
+    uni_pmdec_disp_f = (pmdec_disp_f > 0.0) & (pmdec_disp_f < 1.0)
+
+    uni_all = uni_pmdec_mean & uni_pmdec_disp & uni_pmdec_mean_f & uni_pmdec_disp_f
+
+    if not uni_all:
+        return -np.inf
+
+    else:
+        return 0
+
+
+#--------------------------------------------------------------------------------------------------------
+
+def lnprob_pmdec(x, pmdec, sig_pmdec):
+    lp      = lnprior_pmdec(x, pmdec, sig_pmdec)
+
+    if not np.isfinite(lp):
+        return -np.inf
+
+    return lp + ln_pmdec(x, pmdec, sig_pmdec)
 
 # def ob_stars(args, source, pmax=None, nbinaries):
 #     """Returns a randomly generated dataset of `nbinaries` OB spectroscopic binaries.
@@ -171,11 +207,11 @@ if __name__ == "__main__":
 
     #---- inpur data ----
     dataorg = Table.read('./Input/{}.fits'.format(args.filename))
-    print('data must have "RV_tb2" RV, cleaning...')
-    dataclean = dataorg[dataorg['RV_tb2']>-9000]
+    print('data must have "RV_Jackson" RV, cleaning...')
+    dataclean = dataorg[dataorg['RV_Jackson']>-9000]
 
-    velocity = np.array(dataclean['RV_tb2'])
-    sigvel   = np.array(dataclean['e_RV_tb2'])
+    velocity = np.array(dataclean['RV_Jackson'])
+    sigvel   = np.array(dataclean['e_RV_Jackson'])
     mass     = dataclean['Mass']
 
     pmra   = np.array(dataclean['pmra'])
@@ -254,6 +290,69 @@ if __name__ == "__main__":
             soln = opti.minimize(nll, initial, args=(pmdec, epmdec))
             max_vmean, max_vdisp, max_vmean_f, max_vdisp_f = soln.x
             print(f'pmDEC maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}')
+
+            print(f'now run MCMC')
+            nwalkers, nstep, nburn = 200, 10000, 1000
+            #----------------
+
+            initial = np.array([23.33, 0.66, 23.35, 0.53]).T # initial samples
+            ndim = len(initial) # number of parameters/dimensions
+            pos = [initial + 1e-4*np.random.randn(ndim) for i in range(nwalkers)]
+            print(pos[0])
+
+            # define backup
+            fn   = "pmdec_test1.h5"
+            backend = emcee.backends.HDFBackend(fn)
+            backend.reset(nwalkers, ndim)
+
+            with Pool() as pool:
+
+                sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_pmdec,
+                                                    args=(pmdec, epmdec),
+                                                    backend=backend, pool=pool)
+                sampler.run_mcmc(pos, nstep, progress=True)
+
+            # nstep, nburn, ndim = 2000, 500, 7
+            reader = emcee.backends.HDFBackend(fn)
+            nthin= 1
+            samples = reader.get_chain(discard=nburn, thin=nthin, flat=True)
+
+            f, ax = plt.subplots(ndim, ndim, figsize=(ndim+1, ndim+1), facecolor='white', dpi=300, gridspec_kw={'hspace': .05, 'wspace': 0.05})
+
+            fig = corner.corner(samples, quantiles=[0.16, 0.5, 0.84],
+                                show_titles=True, color='xkcd:olive',
+                                labels=["vmean", r"vdisp", r"vmean_f", "vdisp_f"], title_kwargs={'size':7}, title_fmt='1.3f',
+                                fig=f)
+
+            axes = np.array(fig.axes).reshape((ndim, ndim))
+
+            # Loop over the histograms
+            for yi in range(ndim):
+                for xi in range(yi):
+                    ax = axes[yi, xi]
+                    ax.tick_params(axis='both', which ='both', labelsize=6, right=True, top=True, direction='in', width=.4)
+
+                    ax.yaxis.get_label().set_fontsize(8)
+                    ax.yaxis.get_label().set_fontstyle(fig_style)
+                    ax.yaxis.get_label().set_fontfamily(fig_family)
+
+                    ax.xaxis.get_label().set_fontsize(8)
+                    ax.xaxis.get_label().set_fontstyle(fig_style)
+                    ax.xaxis.get_label().set_fontfamily(fig_family)
+
+                    ax.xaxis.get_offset_text().set_fontsize(6)
+                    ax.yaxis.get_offset_text().set_fontsize(6)
+
+
+            for i in range(ndim):
+                ax = axes[i, i]
+                ax.tick_params(axis='both', which ='both', labelsize=6, right=True, top=True, direction='in', width=.4)
+
+                ax.xaxis.get_label().set_fontsize(8)
+                ax.xaxis.get_label().set_fontstyle(fig_style)
+                ax.xaxis.get_label().set_fontfamily(fig_family)
+
+            f.savefig('./pmdec_test2.png', format='png', bbox_inches='tight')
 
         print('Program finished')
 
