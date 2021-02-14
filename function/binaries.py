@@ -293,7 +293,7 @@ class OrbitalParameters:
                 rv_offset_mean = sp.sum(rv_offset_per_epoch * weight[sp.newaxis, :], -1) / sp.sum(weight)
                 chisq = sp.sum((rv_offset_per_epoch - rv_offset_mean[:, sp.newaxis]) ** 2. * weight[sp.newaxis, :], -1)
                 isdetected = sp.stats.chisqprob(chisq, len(epochs) - 1) < pfalse
-                pdet = float(sp.sum(isdetected)) / isdetected.size
+                pdet = np.float(sp.sum(isdetected)) / isdetected.size
                 rv_binoffset = (sp.sum(rv_binoffset_per_epoch * weight[sp.newaxis, :], -1) / sp.sum(weight))[~isdetected]
 
                 mean_rv = sp.sum(mult_vel * weight) / sp.sum(weight)

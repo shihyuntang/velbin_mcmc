@@ -266,10 +266,23 @@ if __name__ == "__main__":
     #---- inpur data ----
     dataorg = Table.read('./Input/{}.fits'.format(args.filename))
     print('data must have "RV_Jackson" RV, cleaning...')
-    dataclean = dataorg[dataorg['RV_Jackson']>-9000]
 
-    velocity = np.array(dataclean['RV_Jackson'])
-    sigvel   = np.array(dataclean['e_RV_Jackson'])
+    if (args.filename == 'Coma_Berenices_rv_dr3_tr') or (args.filename == 'NGC_6774_rv_dr3_tr'):
+        rvuseN    = 'dr2_radial_velocity'
+        rvuseNerr = 'dr2_radial_velocity_error'
+
+    elif args.filename == 'NGC_2422_rv_dr3_tr':
+        vuseN    = 'RV_Bailey'
+        rvuseNerr = 'e_RV_Bailey'
+
+    else:
+        rvuseN    = 'RV_Jackson'
+        rvuseNerr = 'e_RV_Jackson'
+
+    dataclean = dataorg[dataorg[rvuseN]>-9000]
+
+    velocity = np.array(dataclean[rvuseN])
+    sigvel   = np.array(dataclean[rvuseNerr])
     mass     = dataclean['Mass']
 
     pmra     = np.array(dataclean['pmra'])
@@ -278,7 +291,7 @@ if __name__ == "__main__":
     epmdec   = np.array(dataclean['pmdec_error'])
 
     #-- MCMC setting ---
-    nwalkers, nstep, nburn = 100, 10000, 2500 # for RV only...
+    nwalkers, nstep, nburn = 100, 5000, 1000  # for RV only...
     fnrv      = "rv_mcmcsave.h5"
     fnpmra    = "pmra_mcmcsave.h5"
     fnpmdec   = "pmdec_mcmcsave.h5"
@@ -315,7 +328,7 @@ if __name__ == "__main__":
             #----------------
             print(f'now run MCMC')
             #----------------
-            initial = np.array([max_vmean, max_vdisp, max_fbin, max_vmean_f, max_vdisp_f]).T # initial samples
+            # initial = np.array([max_vmean, max_vdisp, max_fbin, max_vmean_f, max_vdisp_f]).T # initial samples
             ndim = len(initial) # number of parameters/dimensions
             pos = [initial + 1e-4*np.random.randn(ndim) for i in range(nwalkers)]
             # print(pos[0])
@@ -331,7 +344,7 @@ if __name__ == "__main__":
                 sampler.run_mcmc(pos, nstep, progress=True)
 
             ### plotting
-            cornerplot(fnrv, nburn, ndim, 10, pngsave_name, 'rv')
+            cornerplot(fnrv, nburn, ndim, 5, pngsave_name, 'rv')
             #----------------
 
 
@@ -367,7 +380,7 @@ if __name__ == "__main__":
             #----------------
             print(f'now run MCMC')
             #----------------
-            initial = np.array([max_vmean, max_vdisp, max_vmean_f, max_vdisp_f]).T # initial samples
+            # initial = np.array([max_vmean, max_vdisp, max_vmean_f, max_vdisp_f]).T # initial samples
             ndim = len(initial) # number of parameters/dimensions
             pos = [initial + 1e-4*np.random.randn(ndim) for i in range(nwalkers)]
             # print(pos[0])
@@ -408,7 +421,7 @@ if __name__ == "__main__":
             #----------------
             print(f'now run MCMC')
             #----------------
-            initial = np.array([max_vmean, max_vdisp, max_vmean_f, max_vdisp_f]).T # initial samples
+            # initial = np.array([max_vmean, max_vdisp, max_vmean_f, max_vdisp_f]).T # initial samples
             ndim = len(initial) # number of parameters/dimensions
             pos = [initial + 1e-4*np.random.randn(ndim) for i in range(nwalkers)]
             # print(pos[0])
