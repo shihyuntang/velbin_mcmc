@@ -451,3 +451,5 @@ if __name__ == "__main__":
 
     else:
         sys.exit(f"Wrong input with: {args.mode}, only take 'solar' OR 'ob_stars'")
+    
+    print('Hello world')

@@ -209,3 +209,5 @@ class BinaryFit_noF(object):
         """
         # fbin_fix = 0.5
         return np.sum(self.individual_log_likelihood(vmean, vdisp, fbin)) + self.log_likelihood_detection(fbin)
+    
+ print('Hello world2')
