@@ -1,0 +1,12 @@
+name: emcee
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7
+  - matplotlib
+  - numpy
+  - scipy
+  - pip
+  - pip:
+    - corner
