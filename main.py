@@ -489,8 +489,6 @@ if __name__ == "__main__":
 
         # print(BinaryObj(velocity, sigvel, mass))
         # print(all_binaries.arr['mass_ratio'])
-    
-    os.environ["OMP_NUM_THREADS"] = ""
 
     elif args.mode.lower() == 'ob_stars':
         sys.exit(f"Sorry, MCMC code is currently unable to perform 'ob_stars'")
@@ -498,3 +496,5 @@ if __name__ == "__main__":
 
     else:
         sys.exit(f"Wrong input with: {args.mode}, only take 'solar' OR 'ob_stars'")
+    
+    os.environ["OMP_NUM_THREADS"] = ""
