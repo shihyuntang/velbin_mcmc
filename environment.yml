@@ -4,6 +4,8 @@ channels:
   - defaults
 dependencies:
   - python=3.7
+  - astropy 
+  - emcee
   - matplotlib
   - numpy
   - scipy
