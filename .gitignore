@@ -1,6 +1,7 @@
-.DS_Store
+*.DS_Store
 Input/**
 *.pyc
 *.h5
 *.png
 *.pyc
+*.zip
