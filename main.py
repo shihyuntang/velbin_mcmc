@@ -1,23 +1,30 @@
 import numpy as np
-import sys, os, argparse, ast
-import itertools
+import sys, os, argparse, ast, itertools
 
 from astropy.table import Table
 from scipy import optimize as opti
 from multiprocessing import Pool
 
 import corner, emcee
-import matplotlib.pyplot as plt
-fig_dpi      = 300
-fig_typeface = 'Helvetica'
-fig_family   = 'monospace'
-fig_style    = 'normal'
 
 from  function.binaries import *
 from  function.mcmc_func import *
 
 
 def mcmc_setting():
+    """you can change the value here for MCMC walkers
+
+    Returns:
+        nwalkers int: number of walkers to use
+        nstep int: number of steps for each walker to walk
+        nburn int: number of burn in steps to drop off while plotting 
+                        the corner plot 
+                        (so your final sampled number are nstep-nburn)
+        
+        In general, 100 walkers are pertty good for this work.
+        If you still see burn in in your corner plot, try to increase 
+        the nstep and the nburn
+    """
 
     # nwalkers, nstep, nburn = 100, 25000, 20000  # for RV only...
     nwalkers, nstep, nburn = 50, 30000, 20000  # for RV only...
@@ -27,62 +34,92 @@ def mcmc_setting():
     
     return nwalkers, nstep, nburn, fnrv, fnpmra, fnpmdec
 
-# log prior settings
-def lnprior_rv(x, velocity, sigvel, mass, F_yn, max_vmean, max_vmean_f):
+
+def lnprior_rv(x, max_vmean, max_vmean_f):
+    """log prior for the RV data.
+    Change the values here to narrow down the range your walkers walk, 
+    and hope to speed up the MCMC.
+    But, do not give a too tight constrain for getting a biased distrebution
+
+    Args:
+        x (list): stored par.
+        max_vmean (float): mean rv you inputted
+        max_vmean_f (float): mean field rv you inputted
+
+    Returns:
+        float: log prior probability
+    """
     vmean, vdisp, fbin, vmean_f, vdisp_f = x
 
-    # Uniform prior
-    uni_rv_mean   = (vmean   > (max_vmean-50) )  & (vmean   < (max_vmean+50)) 
-    uni_rv_disp   = (vdisp   > 0.0)             & (vdisp   < 10.0) #
-    uni_rv_mean_f = (vmean_f > (max_vmean_f-50)) & (vmean_f < (max_vmean_f+50))
-    uni_rv_disp_f = (vdisp_f > 0.0)             & (vdisp_f < 10.0)
-    uni_rv_fbin   = (fbin    > 0.0)             & (fbin < 1.)
+    # uniform priors
+    # only change: vmean_range
+    vmean_range = 50
+    uni_rv_mean   = (vmean > (max_vmean-vmean_range)) & (vmean < (max_vmean+vmean_range)) 
+    uni_rv_mean_f = (vmean_f > (max_vmean_f-vmean_range)) & (vmean_f < (max_vmean_f+vmean_range))
+    
+    # only change: vdisp_range
+    vdisp_range = 10.0
+    uni_rv_disp   = (vdisp   > 0.0) & (vdisp   < vdisp_range)
+    uni_rv_disp_f = (vdisp_f > 0.0) & (vdisp_f < vdisp_range)
+    
+    # you might not need to change this...
+    uni_rv_fbin   = (fbin    > 0.0)              & (fbin < 1.)
 
     uni_all = uni_rv_mean & uni_rv_disp & uni_rv_mean_f & uni_rv_disp_f & uni_rv_fbin
-
     if not uni_all:
         return -np.inf
     else:
         return 0
 
 
-def lnprior_pm(x, pm, sig_pm, max_vmean, max_vmean_f):
+def lnprior_pm(x, max_vmean, max_vmean_f):
+    """log prior for the PM data.
+    Change the values here to narrow down the range your walkers walk, 
+    and hope to speed up the MCMC.
+    But, do not give a too tight constrain for getting a biased distrebution
+
+    Args:
+        x (list): stored par.
+        max_vmean (float): mean pm(ra or dec) you inputted
+        max_vmean_f (float): mean field pm(ra or dec) you inputted
+
+    Returns:
+        float: log prior probability
+    """
     pm_mean, pm_disp, pm_mean_f, pm_disp_f = x
 
-    # Uniform prior
-    uni_pm_mean   = (pm_mean   > (max_vmean-50) )  & (pm_mean   < (max_vmean+50)) 
-    uni_pm_disp   = (pm_disp   > 0.0)              & (pm_disp   < 1.5)
-    uni_pm_mean_f = (pm_mean_f > (max_vmean_f-50)) & (pm_mean_f < (max_vmean_f+50))
-    uni_pm_disp_f = (pm_disp_f > 0.0)              & (pm_disp_f < 1.5)
+    # uniform priors
+    # only change: vmean_range
+    vmean_range = 50
+    uni_pm_mean   = (pm_mean > (max_vmean-vmean_range) ) & (pm_mean < (max_vmean+vmean_range)) 
+    uni_pm_mean_f = (pm_mean_f > (max_vmean_f-vmean_range)) & (pm_mean_f < (max_vmean_f+vmean_range))
+    
+    # only change: vdisp_range 
+    vdisp_range = 1.5    
+    uni_pm_disp   = (pm_disp   > 0.0) & (pm_disp   < vdisp_range)
+    uni_pm_disp_f = (pm_disp_f > 0.0) & (pm_disp_f < vdisp_range)
 
     uni_all = uni_pm_mean & uni_pm_disp & uni_pm_mean_f & uni_pm_disp_f
 
     if not uni_all:
         return -np.inf
-
     else:
         return 0
 
-# def lnprior_pmdec(x, pmdec, sig_pmdec, max_vmean, max_vmean_f):
-#     pmdec_mean, pmdec_disp, pmdec_mean_f, pmdec_disp_f = x
-
-#     # Uniform prior
-#     uni_pmdec_mean   = (pmdec_mean   > (max_vmean-50) )  & (pmdec_mean   < (max_vmean+50) ) #\pm5
-#     uni_pmdec_disp   = (pmdec_disp   > 0.0)             & (pmdec_disp   < 1.5) #
-#     uni_pmdec_mean_f = (pmdec_mean_f > (max_vmean_f-50)) & (pmdec_mean_f < (max_vmean_f+50))
-#     uni_pmdec_disp_f = (pmdec_disp_f > 0.0)             & (pmdec_disp_f < 1.5)
-
-#     uni_all = uni_pmdec_mean & uni_pmdec_disp & uni_pmdec_mean_f & uni_pmdec_disp_f
-
-#     if not uni_all:
-#         return -np.inf
-
-#     else:
-#         return 0
-
 
 def lnprob_rv(x, lnlike, max_vmean, max_vmean_f):
-    lp      = lnprior_rv(x, velocity, sigvel, mass, F_yn, max_vmean, max_vmean_f)
+    """posterior for rv 
+
+    Args:
+        x (list): stored par.
+        lnlike (func): linkelihook function
+        max_vmean (float): mean pm(ra or dec) you inputted
+        max_vmean_f (float): mean field pm(ra or dec) you inputted
+
+    Returns:
+        float: posterior probability
+    """
+    lp      = lnprior_rv(x, max_vmean, max_vmean_f)
 
     if not np.isfinite(lp):
         return -np.inf
@@ -91,23 +128,36 @@ def lnprob_rv(x, lnlike, max_vmean, max_vmean_f):
 
 
 def lnprob_pm(x, pm, sig_pm, max_vmean, max_vmean_f):
-    lp      = lnprior_pm(x, pmra, sig_pm, max_vmean, max_vmean_f)
+    """posterior for rv 
+
+    Args:
+        x (list): stored par.
+        lnlike (func): linkelihook function
+        max_vmean (float): mean pm(ra or dec) you inputted
+        max_vmean_f (float): mean field pm(ra or dec) you inputted
+
+    Returns:
+        float: posterior probability
+    """
+    lp      = lnprior_pm(x, max_vmean, max_vmean_f)
 
     if not np.isfinite(lp):
         return -np.inf
 
-    return lp + ln_pm(x, pmra, sig_pm)
-
-
-# def lnprob_pmdec(x, pmdec, sig_pmdec, max_vmean, max_vmean_f):
-#     lp      = lnprior_pmdec(x, pmdec, sig_pmdec, max_vmean, max_vmean_f)
-
-#     if not np.isfinite(lp):
-#         return -np.inf
-
-#     return lp + ln_pmdec(x, pmdec, sig_pmdec)
+    return lp + ln_pm(x, pm, sig_pm)
 
 def read_input(args):
+    """read in your observation data under the ./Input dir
+
+    Returns:
+        velocity float: rv (km/s)
+        sigvel float: rv error (km/s)
+        mass float: stellar mass (M_sun)
+        pmra float: proper motion ra (mas/yr)
+        pmdec float: proper motion dec (mas/yr)
+        epmra float: proper motion ra err (mas/yr)
+        epmdec float: proper motion dec err (mas/yr)
+    """
     
     dataorg = Table.read('./Input/{}.fits'.format(args.filename))
     print('data must have "RV_Jackson" RV, cleaning...')
@@ -169,7 +219,9 @@ def solar(args, nbinaries):
     return properties
 
 def rv_max_like(nll, initial):
-    
+    """get maximum likelihood answer
+    not useful, you shouldn't use it
+    """
     print('---------------------------------------------')
     print('Now finding the maximum likelihood for RV...')
     
@@ -184,7 +236,9 @@ def rv_max_like(nll, initial):
     return initial, run_max, max_vmean, max_vmean_f
 
 def pm_max_like(nll, initial, rxORdec='RA'):
-    
+    """get maximum likelihood answer
+    not useful, you shouldn't use it
+    """
     print('---------------------------------------------')
     print('Now finding the maximum likelihood for pm{rxORdec}...')
     
