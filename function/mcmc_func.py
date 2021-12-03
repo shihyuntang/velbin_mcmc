@@ -4,7 +4,7 @@ MCMC use functions
 by Shih-Yun Tang Dec. 2, 2020
 """
 import numpy as np
-import corner, emcee
+import corner, emcee, os
 import matplotlib.pyplot as plt
 
 fig_dpi      = 300
@@ -23,16 +23,6 @@ def ln_pm(x, pm, pm_sig):
     return np.sum(np.log(result))
 
 
-# def ln_pmdec(x, pmdec, sig_pmdec):
-#     f_c  = 0.95
-#     pmdec_mean, pmdec_disp, pmdec_mean_f, pmdec_disp_f = x
-#     likelihood_single = f_c    * np.exp(-(pmdec - pmdec_mean) ** 2 / (2 * (sig_pmdec ** 2. + pmdec_disp ** 2.))) / np.sqrt(2 * np.pi * (sig_pmdec ** 2. + pmdec_disp ** 2.)) + \
-#                         (1-f_c)* np.exp(-(pmdec - pmdec_mean_f) ** 2 / (2 * (sig_pmdec ** 2. + pmdec_disp_f ** 2.))) / np.sqrt(2 * np.pi * (sig_pmdec** 2. + pmdec_disp_f ** 2.))
-
-#     result = np.where(likelihood_single > 1E-5, likelihood_single, 1E-10)
-#     return np.sum(np.log(result))
-
-
 def ln_rv(velocity, sigvel, mass, F_yn):
     global args
     nbinaries = np.int(1e6)
@@ -41,9 +31,7 @@ def ln_rv(velocity, sigvel, mass, F_yn):
     return lnlike
 
 
-
-
-def cornerplot(fn, nburn, ndim, nthin, pngsave_name, partype):
+def cornerplot(fn, nburn, ndim, nthin, png_save_name, partype):
     reader = emcee.backends.HDFBackend(fn)
     samples = reader.get_chain(discard=nburn, thin=nthin, flat=True)
 
@@ -86,8 +74,16 @@ def cornerplot(fn, nburn, ndim, nthin, pngsave_name, partype):
         ax.xaxis.get_label().set_fontsize(8)
         ax.xaxis.get_label().set_fontstyle(fig_style)
         ax.xaxis.get_label().set_fontfamily(fig_family)
+        
+    filesndirs = os.listdir(f'./figs')
+    trk = 1; go = True
+    while go :
+        name = f'./figs/{png_save_name}_{partype}_mcmc_{trk}.png'
+        if name not in filesndirs:
+            break
+        trk += 1
 
-    f.savefig(f'./figs/{pngsave_name}_{partype}_mcmc_3.png', format='png', bbox_inches='tight')
+    f.savefig(name, format='png', bbox_inches='tight')
  
     
     
