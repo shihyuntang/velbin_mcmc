@@ -288,6 +288,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     png_save_name = f'{args.filename.split("_")[0]}{args.filename.split("_")[1]}'
 
+    os.environ["OMP_NUM_THREADS"] = "1"
+    
     # remove previous .h5 file to save space
     dir_list = os.listdir()
     for dd in dir_list:
@@ -487,6 +489,8 @@ if __name__ == "__main__":
 
         # print(BinaryObj(velocity, sigvel, mass))
         # print(all_binaries.arr['mass_ratio'])
+    
+    os.environ["OMP_NUM_THREADS"] = ""
 
     elif args.mode.lower() == 'ob_stars':
         sys.exit(f"Sorry, MCMC code is currently unable to perform 'ob_stars'")
