@@ -17,8 +17,15 @@ from  function.binaries import *
 from  function.mcmc_func import *
 
 
+def mcmc_setting():
 
-
+    nwalkers, nstep, nburn = 100, 25000, 20000  # for RV only...
+    # nwalkers, nstep, nburn = 50, 10000, 5000  # for RV only...
+    fnrv      = "rv_mcmcsave.h5"
+    fnpmra    = "pmra_mcmcsave.h5"
+    fnpmdec   = "pmdec_mcmcsave.h5"
+    
+    return nwalkers, nstep, nburn, fnrv, fnpmra, fnpmdec
 
 # log prior settings
 def lnprior_rv(x, velocity, sigvel, mass, F_yn, max_vmean, max_vmean_f):
@@ -100,6 +107,44 @@ def lnprob_pm(x, pm, sig_pm, max_vmean, max_vmean_f):
 
 #     return lp + ln_pmdec(x, pmdec, sig_pmdec)
 
+def read_input(args):
+    
+    dataorg = Table.read('./Input/{}.fits'.format(args.filename))
+    print('data must have "RV_Jackson" RV, cleaning...')
+
+    # if (args.filename == 'Coma_Berenices_rv_dr3_tr') or (args.filename == 'NGC_6774_rv_dr3_tr'):
+    #     rvuseN    = 'dr2_radial_velocity'
+    #     rvuseNerr = 'dr2_radial_velocity_error'
+    #
+    # elif args.filename == 'NGC_2422_rv_dr3_tr':
+    #     rvuseN    = 'RV_Bailey'
+    #     rvuseNerr = 'e_RV_Bailey'
+    #
+    # else:
+    #     rvuseN    = 'RV_Jackson'
+    #     rvuseNerr = 'e_RV_Jackson'
+    
+    if (args.filename == 'Po0_withDMV') or (args.filename == 'Po2_withDMV') or (args.filename == 'Huluwa_1A') or (args.filename == 'Huluwa_1B'):
+        rvuseN    = 'HRV'
+        rvuseNerr = 'e_HRV'
+    else:
+        rvuseN    = 'dr2_radial_velocity'
+        rvuseNerr = 'dr2_radial_velocity_error'
+
+    dataclean = np.array(dataorg[dataorg[rvuseN]>-9000])
+
+    velocity = np.array(dataclean[rvuseN])
+    sigvel   = np.array(dataclean[rvuseNerr])
+    mass     = dataclean['Mass']
+
+    pmra     = np.array(dataclean['pmra'])
+    epmra    = np.array(dataclean['pmra_error'])
+    pmdec    = np.array(dataclean['pmdec'])
+    epmdec   = np.array(dataclean['pmdec_error'])
+    
+    return velocity, sigvel, mass, pmra, pmdec, epmra, epmdec
+    
+
 def solar(args, nbinaries):
     """Returns a randomly generated dataset of `nbinaries` solar-type binaries.
 
@@ -123,6 +168,33 @@ def solar(args, nbinaries):
     properties.draw_eccentricities(args)
     return properties
 
+def rv_max_like(nll, initial):
+    
+    soln = opti.minimize(nll, initial)
+    max_vmean, max_vdisp, max_fbin, max_vmean_f, max_vdisp_f = soln.x
+    print(f'RV maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}\n')
+    run_max = 1
+    
+    initial = np.array([max_vmean, max_vdisp, max_fbin, max_vmean_f, 
+                        max_vdisp_f]).T # initial samples
+    
+    return initial, run_max, max_vmean, max_vmean_f
+
+def pm_max_like(nll, initial, rxORdec='RA'):
+    
+    print('---------------------------------------------')
+    print('Now finding the maximum likelihood for pm{rxORdec}...')
+    
+    soln = opti.minimize(nll, initial, args=(pmra, epmra))
+    max_vmean, max_vdisp, max_vmean_f, max_vdisp_f = soln.x
+    print(f'pm{rxORdec} maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}\n')
+    run_max = 1
+    
+    initial = np.array([max_vmean, max_vdisp, max_vmean_f, 
+                        max_vdisp_f]).T # initial samples
+    
+    return initial, run_max, max_vmean, max_vmean_f
+
 
 
 if __name__ == "__main__":
@@ -134,11 +206,7 @@ if __name__ == "__main__":
                                      epilog = "Contact author: sytang@lowell.edu")
     parser.add_argument("filename",                          action="store",
                         help="Enter your filename you wish you use under ./Input/", type=str)
-    parser.add_argument('-headerused',       dest="mode",         action="store",
-                        help="if not specified, will use the default names",
-                        type=str,   default='' )
 
-    #---- must inputs ----
     parser.add_argument('-rv',       dest="rv",         action="store",
                         help="RV initial parameters [vmean,vdisp,vmean_f,vdisp_f,fbin]",
                         type=str,   default='' )
@@ -167,6 +235,7 @@ if __name__ == "__main__":
     #                     type=int,   default=int(1) )
     global args
     args = parser.parse_args()
+    png_save_name = f'{args.filename.split("_")[0]}{args.filename.split("_")[1]}'
 
     # remove previous .h5 file to save space
     dir_list = os.listdir()
@@ -175,137 +244,118 @@ if __name__ == "__main__":
             os.remove(dd)
             print(f'Clean {dd}')
 
-
-    unpackRV = np.array(ast.literal_eval(args.rv),  dtype=str)
-    if len(unpackRV)==5:
-        vmean, vdisp, vmean_f, vdisp_f, fbin = np.array(ast.literal_eval(args.rv),  dtype=str)
-        F_yn = 1
-        print('Do the field star fit...')
+    if len(args.rv) != 0:
+        doRV = 1
+        unpackRV = np.array(ast.literal_eval(args.rv),  dtype=str)
+        if len(unpackRV)==5:
+            vmean, vdisp, vmean_f, vdisp_f, fbin = np.array(
+                                        ast.literal_eval(args.rv), dtype=str)
+            F_yn = 1
+            print('Do the field star fit...')
+        else:
+            vmean, vdisp, fbin = np.array(ast.literal_eval(args.rv),  dtype=str)
+            F_yn = 0
+            print('Skip the field star fit...')
     else:
-        vmean, vdisp, fbin = np.array(ast.literal_eval(args.rv),  dtype=str)
-        F_yn = 0
-        print('Skip the field star fit...')
-
-    pngsave_name = f'{args.filename.split("_")[0]}{args.filename.split("_")[1]}'
-    #---- inpur data ----
-    dataorg = Table.read('./Input/{}.fits'.format(args.filename))
-    print('data must have "RV_Jackson" RV, cleaning...')
-
-    # if (args.filename == 'Coma_Berenices_rv_dr3_tr') or (args.filename == 'NGC_6774_rv_dr3_tr'):
-    #     rvuseN    = 'dr2_radial_velocity'
-    #     rvuseNerr = 'dr2_radial_velocity_error'
-    #
-    # elif args.filename == 'NGC_2422_rv_dr3_tr':
-    #     rvuseN    = 'RV_Bailey'
-    #     rvuseNerr = 'e_RV_Bailey'
-    #
-    # else:
-    #     rvuseN    = 'RV_Jackson'
-    #     rvuseNerr = 'e_RV_Jackson'
-
-    if (args.filename == 'Po0_withDMV') or (args.filename == 'Po2_withDMV') or (args.filename == 'Huluwa_1A') or (args.filename == 'Huluwa_1B'):
-        rvuseN    = 'HRV'
-        rvuseNerr = 'e_HRV'
+        doRV = 0
+        
+    
+    if len(args.pmra) != 0:
+        doPMra = 1
+        pmra_mean, pmra_disp, pmra_mean_f, pmra_disp_f  = np.array(
+                                        ast.literal_eval(args.pmra),  dtype=str)
     else:
-        rvuseN    = 'dr2_radial_velocity'
-        rvuseNerr = 'dr2_radial_velocity_error'
+        doPMra = 0
+        
+        
+    if len(args.pmdec) != 0:
+        doPMdec = 1
+        pmdec_mean, pmdec_disp, pmdec_mean_f, pmdec_disp_f = np.array(
+                                    ast.literal_eval(args.pmdec), dtype=str)
+    else:
+        doPMdec = 0
 
-    dataclean = np.array(dataorg[dataorg[rvuseN]>-9000])
+        
+    
+    # read in data
+    velocity, sigvel, mass, pmra, pmdec, epmra, epmdec = read_input(args)
+    
+    # mcmc setting 
+    nwalkers, nstep, nburn, fnrv, fnpmra, fnpmdec = mcmc_setting()
 
-    velocity = np.array(dataclean[rvuseN])
-    sigvel   = np.array(dataclean[rvuseNerr])
-    mass     = dataclean['Mass']
 
-    pmra     = np.array(dataclean['pmra'])
-    epmra    = np.array(dataclean['pmra_error'])
-    pmdec    = np.array(dataclean['pmdec'])
-    epmdec   = np.array(dataclean['pmdec_error'])
 
-    #-- MCMC setting ---
-    nwalkers, nstep, nburn = 100, 25000, 20000  # for RV only...
-    # nwalkers, nstep, nburn = 50, 10000, 5000  # for RV only...
-    fnrv      = "rv_mcmcsave.h5"
-    fnpmra    = "pmra_mcmcsave.h5"
-    fnpmdec   = "pmdec_mcmcsave.h5"
-    #--------------
-    #---- mode ----
     nbinaries = np.int(1e6)
     if args.mode.lower() == 'solar':
         all_binaries = solar(args, nbinaries=nbinaries )
 
         print('Using the "single_epoch" mode to fit... \n')
 
-        lnlike = all_binaries.single_epoch(velocity, sigvel, mass, F_yn, log_minv=-3, log_maxv=None, log_stepv=0.02)
+        lnlike = all_binaries.single_epoch(velocity, sigvel, mass, F_yn, 
+                                           log_minv=-3, log_maxv=None, 
+                                           log_stepv=0.02)
 
-        #-----------
         print('---------------------------------------------')
         print('Now finding the maximum likelihood for RV...')
         nll = lambda *argsss: -lnlike(*argsss)
+        if doRV :
+            if F_yn :
+                # initial guess
+                initial = np.array([np.float(vmean),
+                                    np.float(vdisp),
+                                    np.float(fbin),
+                                    np.float(vmean_f),
+                                    np.float(vdisp_f)  ]).T # initial guess
 
-        if F_yn ==1:
-            # initial guess --------
-            initial = np.array([np.float(vmean),
-                                np.float(vdisp),
-                                np.float(fbin),
-                                np.float(vmean_f),
-                                np.float(vdisp_f)  ]).T # initial samples
+                # prevent negative vales
+                initial = np.where(initial > 1E-5, initial, 1E-1)
 
-            initial = np.where(initial > 1E-5, initial, 1E-1)
-            # print(initial)
+                # run opti.minimize to get max likelihood
+                # but found not that useful...
+                
+                # initial, run_max = rv_max_like(nll, initial)
 
+                print(f'now run MCMC')
+                
+                ndim = len(initial) # number of parameters/dimensions
+                pos = [initial + 1e-4*np.random.randn(ndim) for i in range(nwalkers)]
+                # print(pos[0])
 
-            soln = opti.minimize(nll, initial)
-            max_vmean, max_vdisp, max_fbin, max_vmean_f, max_vdisp_f = soln.x
-            print(f'RV maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}\n')
+                # define backup
+                backend = emcee.backends.HDFBackend(fnrv)
+                backend.reset(nwalkers, ndim)
 
-            # if max_vdisp_f <= 1E-5:
-            #     max_vdisp_f = 1E-1
-            #     print(f'Getting minus or zero for vdisp_f, setting it to {max_vdisp_f} to avoid error...')
-            #----------------
-            print(f'now run MCMC')
-            #----------------
-            # initial = np.array([max_vmean, max_vdisp, max_fbin, max_vmean_f, max_vdisp_f]).T # initial samples
-            ndim = len(initial) # number of parameters/dimensions
-            pos = [initial + 1e-4*np.random.randn(ndim) for i in range(nwalkers)]
-            # print(pos[0])
-
-            # define backup
-            backend = emcee.backends.HDFBackend(fnrv)
-            backend.reset(nwalkers, ndim)
-
-            with Pool() as pool:
-                sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_rv,
-                                                    args=(lnlike, np.float(vmean), np.float(vmean_f)),
+                with Pool() as pool:
+                    # if not run_max:
+                    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_rv,
+                                                    args=(lnlike, initial[0], 
+                                                          initial[3]),
                                                     backend=backend, pool=pool)
-                # sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_rv,
-                #                                     args=(lnlike, max_vmean, max_vmean_f),
-                #                                     backend=backend, pool=pool)
-                sampler.run_mcmc(pos, nstep, progress=True)
+                    
+                    # sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_rv,
+                    #                                     args=(lnlike, max_vmean, max_vmean_f),
+                    #                                     backend=backend, pool=pool)
+                    sampler.run_mcmc(pos, nstep, progress=True)
 
-            ### plotting
-            cornerplot(fnrv, nburn, ndim, 20, pngsave_name, 'rv')
-            #----------------
+                # plotting
+                cornerplot(fnrv, nburn, ndim, 20, png_save_name, 'rv')
 
+            else:
+                # initial guess
+                initial = np.array([np.float(vmean),
+                                    np.float(vdisp),
+                                    np.float(fbin)  ]).T # initial samples
 
-        elif F_yn ==0:
-            # initial guess --------
-            initial = np.array([np.float(vmean),
-                                np.float(vdisp),
-                                np.float(fbin)  ]).T # initial samples
-
-            soln = opti.minimize(nll, initial)
-            max_vmean, max_vdisp, max_fbin = soln.x
-            print(f'RV maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}\n')
+                soln = opti.minimize(nll, initial)
+                max_vmean, max_vdisp, max_fbin = soln.x
+                print(f'RV maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}\n')
 
         #-----------------------------------------------------------------------------------
-        nwalkers, nstep, nburn = 200, 50000, 45000 # for pmRA and pmDEC
+        if doPMra :
+        # nwalkers, nstep, nburn = 200, 50000, 45000 # for pmRA and pmDEC
         # nwalkers, nstep, nburn = 50, 30000, 25000
-        if args.pmra !='':
-            print('---------------------------------------------')
-            print('Now finding the maximum likelihood for pmRA...')
-            pmra_mean, pmra_disp, pmra_mean_f, pmra_disp_f     = np.array(ast.literal_eval(args.pmra),  dtype=str)
-
-            nll = lambda *argsss: -ln_pmra(*argsss)
+        
+            nll = lambda *argsss: -ln_pm(*argsss)
 
             # initial guess --------
             initial = np.array([np.float(pmra_mean),
@@ -313,36 +363,36 @@ if __name__ == "__main__":
                                 np.float(pmra_mean_f),
                                 np.float(pmra_disp_f)]).T # initial samples
             initial = np.where(initial > 1E-5, initial, 1E-10)
+            
+            # run opti.minimize to get max likelihood
+            # but found not that useful...
+                
+            # initial, run_max = pm_max_like(nll, initial)
+            
+            print(f'now run MCMC')
 
-            soln = opti.minimize(nll, initial, args=(pmra, epmra))
-            max_vmean, max_vdisp, max_vmean_f, max_vdisp_f = soln.x
-            print(f'pmRA maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}\n')
-
-            #----------------
-            # print(f'now run MCMC')
-            # #----------------
-            # # initial = np.array([max_vmean, max_vdisp, max_vmean_f, max_vdisp_f]).T # initial samples
-            # ndim = len(initial) # number of parameters/dimensions
-            # pos = [initial + 1e-4*np.random.randn(ndim) for i in range(nwalkers)]
-            # # print(pos[0])
-            #
-            # # define backup
-            # backend = emcee.backends.HDFBackend(fnpmra)
-            # backend.reset(nwalkers, ndim)
-            #
-            # with Pool() as pool:
-            #
-            #     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_pmra,
-            #                                         args=(pmra, epmra, np.float(pmra_mean), np.float(pmra_mean_f)),
-            #                                         backend=backend, pool=pool)
-            #     # sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_pmra,
-            #                                         # args=(pmra, epmra, max_vmean, max_vmean_f),
-            #                                         # backend=backend, pool=pool)
-            #     sampler.run_mcmc(pos, nstep, progress=True)
-            #
-            # ### plotting
-            # cornerplot(fnpmra, nburn, ndim, 20, pngsave_name, 'pmra')
-            #----------------
+            ndim = len(initial) # number of parameters/dimensions
+            pos = [initial + 1e-4*np.random.randn(ndim) for i in range(nwalkers)]
+            # print(pos[0])
+            
+            # define backup
+            backend = emcee.backends.HDFBackend(fnpmra)
+            backend.reset(nwalkers, ndim)
+            
+            with Pool() as pool:
+                # if not run_max:
+                sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_pm,
+                                                args=(pmra, epmra, initial[0],
+                                                      initial[2]),
+                                                backend=backend, pool=pool)
+                # sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_pmra,
+                                                    # args=(pmra, epmra, max_vmean, max_vmean_f),
+                                                    # backend=backend, pool=pool)
+                sampler.run_mcmc(pos, nstep, progress=True)
+            
+            ### plotting
+            cornerplot(fnpmra, nburn, ndim, 20, png_save_name, 'pmra')
+    
 
         #-----------------------------------------------------------------------------------
         if args.pmdec !='':
@@ -350,7 +400,7 @@ if __name__ == "__main__":
             print('Now finding the maximum likelihood for pmDEC...')
             pmdec_mean, pmdec_disp, pmdec_mean_f, pmdec_disp_f = np.array(ast.literal_eval(args.pmdec), dtype=str)
 
-            nll = lambda *argsss: -ln_pmdec(*argsss)
+            nll = lambda *argsss: -ln_pm(*argsss)
 
             # initial guess --------
             initial = np.array([np.float(pmdec_mean),
@@ -360,35 +410,35 @@ if __name__ == "__main__":
             initial = np.where(initial > 1E-5, initial, 1E-10)
 
 
-            soln = opti.minimize(nll, initial, args=(pmdec, epmdec))
-            max_vmean, max_vdisp, max_vmean_f, max_vdisp_f = soln.x
-            print(f'pmDEC maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}')
-            #----------------
-            #----------------
-            # print(f'now run MCMC')
-            # #----------------
-            # # initial = np.array([max_vmean, max_vdisp, max_vmean_f, max_vdisp_f]).T # initial samples
-            # ndim = len(initial) # number of parameters/dimensions
-            # pos = [initial + 1e-4*np.random.randn(ndim) for i in range(nwalkers)]
-            # # print(pos[0])
-            #
-            # # define backup
-            # backend = emcee.backends.HDFBackend(fnpmdec)
-            # backend.reset(nwalkers, ndim)
-            #
-            # with Pool() as pool:
-            #
-            #     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_pmdec,
-            #                                         args=(pmdec, epmdec, np.float(pmdec_mean), np.float(pmdec_mean_f)),
-            #                                         backend=backend, pool=pool)
-            #     # sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_pmdec,
-            #     #                                     args=(pmdec, epmdec, max_vmean, max_vmean_f),
-            #     #                                     backend=backend, pool=pool)
-            #     sampler.run_mcmc(pos, nstep, progress=True)
-            #
-            # ### plotting
-            # cornerplot(fnpmdec, nburn, ndim, 20, pngsave_name, 'pmdec')
-            #----------------
+            # run opti.minimize to get max likelihood
+            # but found not that useful...
+                
+            # initial, run_max = pm_max_like(nll, initial)
+            
+            print(f'now run MCMC')
+    
+            ndim = len(initial) # number of parameters/dimensions
+            pos = [initial + 1e-4*np.random.randn(ndim) for i in range(nwalkers)]
+            # print(pos[0])
+            
+            # define backup
+            backend = emcee.backends.HDFBackend(fnpmdec)
+            backend.reset(nwalkers, ndim)
+            
+            with Pool() as pool:
+                # if not run_max:
+                sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_pm,
+                                                args=(pmdec, epmdec, 
+                                                    initial[0], initial[2]),
+                                                backend=backend, pool=pool)
+                # sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_pmdec,
+                #                                     args=(pmdec, epmdec, max_vmean, max_vmean_f),
+                #                                     backend=backend, pool=pool)
+                sampler.run_mcmc(pos, nstep, progress=True)
+            
+            ### plotting
+            cornerplot(fnpmdec, nburn, ndim, 20, png_save_name, 'pmdec')
+
 
         print('Program finished \n')
 
@@ -396,7 +446,8 @@ if __name__ == "__main__":
         # print(all_binaries.arr['mass_ratio'])
 
     elif args.mode.lower() == 'ob_stars':
-        all_binaries = ob_stars(args, source, pmax=None, nbinaries=nbinaries)
+        sys.exit(f"Sorry, MCMC code is currently unable to perform 'ob_stars'")
+        # all_binaries = ob_stars(args, source, pmax=None, nbinaries=nbinaries)
 
     else:
         sys.exit(f"Wrong input with: {args.mode}, only take 'solar' OR 'ob_stars'")
