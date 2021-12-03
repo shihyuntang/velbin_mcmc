@@ -10,7 +10,6 @@ import corner, emcee
 from  function.binaries import *
 from  function.mcmc_func import *
 
-
 def mcmc_setting():
     """you can change the value here for MCMC walkers
 
@@ -33,7 +32,6 @@ def mcmc_setting():
     fnpmdec   = "pmdec_mcmcsave.h5"
     
     return nwalkers, nstep, nburn, fnrv, fnpmra, fnpmdec
-
 
 def lnprior_rv(x, max_vmean, max_vmean_f):
     """log prior for the RV data.
@@ -71,7 +69,6 @@ def lnprior_rv(x, max_vmean, max_vmean_f):
     else:
         return 0
 
-
 def lnprior_pm(x, max_vmean, max_vmean_f):
     """log prior for the PM data.
     Change the values here to narrow down the range your walkers walk, 
@@ -106,7 +103,8 @@ def lnprior_pm(x, max_vmean, max_vmean_f):
     else:
         return 0
 
-
+# you probably don't need to touch stuff below... 
+# if you don't know what you are doing...
 def lnprob_rv(x, lnlike, max_vmean, max_vmean_f):
     """posterior for rv 
 
@@ -253,7 +251,6 @@ def pm_max_like(nll, initial, rxORdec='RA'):
     return initial, run_max, max_vmean, max_vmean_f
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
                                      prog        = 'modified the velbin code',
@@ -287,10 +284,7 @@ if __name__ == "__main__":
                         help="pre-loaded: flat, Reggiani13, Sana12, Sana13, Kiminki12. Default = flat",
                         type=str,   default='flat' )
 
-    # parser.add_argument('-c',       dest="Nthreads",         action="store",
-    #                     help="Numbers of run_bash gnerate, i.e., numbers of cpu (threads) to use, default is 1",
-    #                     type=int,   default=int(1) )
-    global args
+    # global args
     args = parser.parse_args()
     png_save_name = f'{args.filename.split("_")[0]}{args.filename.split("_")[1]}'
 
@@ -333,7 +327,6 @@ if __name__ == "__main__":
         doPMdec = 0
 
         
-    
     # read in data
     velocity, sigvel, mass, pmra, pmdec, epmra, epmdec = read_input(args)
     
@@ -343,11 +336,9 @@ if __name__ == "__main__":
     nbinaries = int(1e6)
     if args.mode.lower() == 'solar':
         all_binaries = solar(args, nbinaries=nbinaries )
-
         print('Using the "single_epoch" mode to fit... \n')
 
-        if doRV :
-            
+        if doRV :   
             lnlike = all_binaries.single_epoch(velocity, sigvel, mass, F_yn, 
                                            log_minv=-3, log_maxv=None, 
                                            log_stepv=0.02)
