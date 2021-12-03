@@ -19,8 +19,8 @@ from  function.mcmc_func import *
 
 def mcmc_setting():
 
-    nwalkers, nstep, nburn = 100, 25000, 20000  # for RV only...
-    # nwalkers, nstep, nburn = 50, 10000, 5000  # for RV only...
+    # nwalkers, nstep, nburn = 100, 25000, 20000  # for RV only...
+    nwalkers, nstep, nburn = 50, 10000, 5000  # for RV only...
     fnrv      = "rv_mcmcsave.h5"
     fnpmra    = "pmra_mcmcsave.h5"
     fnpmdec   = "pmdec_mcmcsave.h5"
@@ -170,6 +170,9 @@ def solar(args, nbinaries):
 
 def rv_max_like(nll, initial):
     
+    print('---------------------------------------------')
+    print('Now finding the maximum likelihood for RV...')
+    
     soln = opti.minimize(nll, initial)
     max_vmean, max_vdisp, max_fbin, max_vmean_f, max_vdisp_f = soln.x
     print(f'RV maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}\n')
@@ -283,29 +286,27 @@ if __name__ == "__main__":
     # mcmc setting 
     nwalkers, nstep, nburn, fnrv, fnpmra, fnpmdec = mcmc_setting()
 
-
-
-    nbinaries = np.int(1e6)
+    nbinaries = int(1e6)
     if args.mode.lower() == 'solar':
         all_binaries = solar(args, nbinaries=nbinaries )
 
         print('Using the "single_epoch" mode to fit... \n')
 
-        lnlike = all_binaries.single_epoch(velocity, sigvel, mass, F_yn, 
+        if doRV :
+            
+            lnlike = all_binaries.single_epoch(velocity, sigvel, mass, F_yn, 
                                            log_minv=-3, log_maxv=None, 
                                            log_stepv=0.02)
 
-        print('---------------------------------------------')
-        print('Now finding the maximum likelihood for RV...')
-        nll = lambda *argsss: -lnlike(*argsss)
-        if doRV :
+            nll = lambda *argsss: -lnlike(*argsss)
+            
             if F_yn :
                 # initial guess
-                initial = np.array([np.float(vmean),
-                                    np.float(vdisp),
-                                    np.float(fbin),
-                                    np.float(vmean_f),
-                                    np.float(vdisp_f)  ]).T # initial guess
+                initial = np.array([float(vmean),
+                                    float(vdisp),
+                                    float(fbin),
+                                    float(vmean_f),
+                                    float(vdisp_f)  ]).T # initial guess
 
                 # prevent negative vales
                 initial = np.where(initial > 1E-5, initial, 1E-1)
@@ -315,7 +316,7 @@ if __name__ == "__main__":
                 
                 # initial, run_max = rv_max_like(nll, initial)
 
-                print(f'now run MCMC')
+                print(f'now run rv MCMC')
                 
                 ndim = len(initial) # number of parameters/dimensions
                 pos = [initial + 1e-4*np.random.randn(ndim) for i in range(nwalkers)]
@@ -342,9 +343,9 @@ if __name__ == "__main__":
 
             else:
                 # initial guess
-                initial = np.array([np.float(vmean),
-                                    np.float(vdisp),
-                                    np.float(fbin)  ]).T # initial samples
+                initial = np.array([float(vmean),
+                                    float(vdisp),
+                                    float(fbin)  ]).T # initial samples
 
                 soln = opti.minimize(nll, initial)
                 max_vmean, max_vdisp, max_fbin = soln.x
@@ -358,10 +359,10 @@ if __name__ == "__main__":
             nll = lambda *argsss: -ln_pm(*argsss)
 
             # initial guess --------
-            initial = np.array([np.float(pmra_mean),
-                                np.float(pmra_disp),
-                                np.float(pmra_mean_f),
-                                np.float(pmra_disp_f)]).T # initial samples
+            initial = np.array([float(pmra_mean),
+                                float(pmra_disp),
+                                float(pmra_mean_f),
+                                float(pmra_disp_f)]).T # initial samples
             initial = np.where(initial > 1E-5, initial, 1E-10)
             
             # run opti.minimize to get max likelihood
@@ -369,7 +370,7 @@ if __name__ == "__main__":
                 
             # initial, run_max = pm_max_like(nll, initial)
             
-            print(f'now run MCMC')
+            print(f'now run PMra MCMC')
 
             ndim = len(initial) # number of parameters/dimensions
             pos = [initial + 1e-4*np.random.randn(ndim) for i in range(nwalkers)]
@@ -395,27 +396,24 @@ if __name__ == "__main__":
     
 
         #-----------------------------------------------------------------------------------
-        if args.pmdec !='':
-            print('---------------------------------------------')
-            print('Now finding the maximum likelihood for pmDEC...')
-            pmdec_mean, pmdec_disp, pmdec_mean_f, pmdec_disp_f = np.array(ast.literal_eval(args.pmdec), dtype=str)
-
+        if doPMdec:
+            
             nll = lambda *argsss: -ln_pm(*argsss)
 
             # initial guess --------
-            initial = np.array([np.float(pmdec_mean),
-                                np.float(pmdec_disp),
-                                np.float(pmdec_mean_f),
-                                np.float(pmdec_disp_f)]).T # initial samples
+            initial = np.array([float(pmdec_mean),
+                                float(pmdec_disp),
+                                float(pmdec_mean_f),
+                                float(pmdec_disp_f)]).T # initial samples
             initial = np.where(initial > 1E-5, initial, 1E-10)
 
 
             # run opti.minimize to get max likelihood
             # but found not that useful...
                 
-            # initial, run_max = pm_max_like(nll, initial)
+            # initial, run_max = pm_max_like(nll, initial, 'DEC)
             
-            print(f'now run MCMC')
+            print(f'now run PMdec MCMC')
     
             ndim = len(initial) # number of parameters/dimensions
             pos = [initial + 1e-4*np.random.randn(ndim) for i in range(nwalkers)]

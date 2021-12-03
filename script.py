@@ -1,5 +1,9 @@
 Done:
 python main.py Blanco1_rv_dr3_tr -rv [6.5,0.3,7,0.5,0.5] -pmra [18.72,0.39,19,0.5] -pmdec [2.6,0.39,3,0.5] -mode solar
+
+
+python main.py Blanco1_rv_dr3_tr -rv [6.5,0.3,7,0.5,0.5] -pmra [18.72,0.39,19,0.5] -pmdec [2.6,0.39,3,0.5]
+
 python main.py NGC_2232_rv_dr3_tr -rv [26,0.5,30,0.5,0.2] -pmra [-4.69,0.5,-4.5,0.6] -pmdec [-1.79,0.5,-1.8,0.5] -mode solar
 #---------------------------------------
 my changed (_1):
@@ -17,6 +21,12 @@ python main.py NGC_6774_rv_dr3_tr -rv [42,0.5,42.3,0.7,0.3] -pmra [-0.8,0.27,-1,
 python main.py IC_2391_rv_dr3_tr -rv [14.7,0.35,16,0.7,0.8] -pmra [-24.5,0.5,-25,0.6] -pmdec [23.29,0.6,23.3,0.7] -mode solar
 python main.py IC_2602_rv_dr3_tr -rv [17.5,0.2,22.5,0.7,0.6] -pmra [-10,1.45,-10,0.60] -pmdec [10.84,0.7,10.96,0.7] -mode solar
 python main.py NGC_6633_rv_dr3_tr -rv [-28,0.5,-28,0.5,0.2] -pmra [1.18,0.25,0.95,0.7] -pmdec [-1.89,0.4,-1.051,0.7] -mode solar
+
+
+
+python main.py IC_2391_rv_dr3_tr -rv [14.7,0.35,16,0.7,0.8] -pmra [-24.5,0.5,-25,0.6] -pmdec [23.29,0.6,23.3,0.7] 
+
+python main.py IC_2391_rv_dr3_tr -pmra [-24.5,0.5,-25,0.6] -pmdec [23.29,0.6,23.3,0.7] 
 
 #---------------------------------------
 #---------------------------------------

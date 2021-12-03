@@ -87,7 +87,7 @@ def cornerplot(fn, nburn, ndim, nthin, pngsave_name, partype):
         ax.xaxis.get_label().set_fontstyle(fig_style)
         ax.xaxis.get_label().set_fontfamily(fig_family)
 
-    f.savefig(f'./figs/{pngsave_name}_{partype}_mcmc_2.png', format='png', bbox_inches='tight')
+    f.savefig(f'./figs/{pngsave_name}_{partype}_mcmc_3.png', format='png', bbox_inches='tight')
  
     
     
