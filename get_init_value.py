@@ -25,9 +25,9 @@ def main(args):
     print("""\n
 Target OC name (csv file name): {}
 There are in total {} members
-Only {} have Gaia DR2 RVs
+Only {} ({:1.1%}) have Gaia DR2 RVs
 -rv [{:1.1f},{:1.1f},{:1.1f},{:1.1f},0.5] -pmra [{:1.1f},{:1.1f},{:1.1f},{:1.1f}] -pmdec [{:1.1f},{:1.1f},{:1.1f},{:1.1f}]
-    """.format(args.filename, len(tb_org), len(tb_with_rv),
+    """.format(args.filename, len(tb_org), len(tb_with_rv), len(tb_with_rv)/len(tb_org)
                np.mean(rv),    np.std(rv),    np.mean(rv),    np.std(rv),
                np.mean(pmra),  np.std(pmra),  np.mean(pmra),  np.std(pmra),
                np.mean(pmdec), np.std(pmdec), np.mean(pmdec), np.std(pmdec),
