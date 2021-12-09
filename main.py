@@ -10,7 +10,7 @@ import corner, emcee
 from  function.binaries import *
 from  function.mcmc_func import *
 
-def mcmc_setting():
+def mcmc_setting(args):
     """you can change the value here for MCMC walkers
 
     Returns:
@@ -26,7 +26,8 @@ def mcmc_setting():
     """
 
     # nwalkers, nstep, nburn = 100, 25000, 20000  # for RV only...
-    nwalkers, nstep, nburn = 50, 30000, 20000  # for RV only...
+    # nwalkers, nstep, nburn = 50, 30000, 20000  # for RV only...
+    nwalkers, nstep, nburn = args.walker, args.steps, args.burnin  # for RV only...
     fnrv      = "rv_mcmcsave.h5"
     fnpmra    = "pmra_mcmcsave.h5"
     fnpmdec   = "pmdec_mcmcsave.h5"
@@ -258,6 +259,19 @@ if __name__ == "__main__":
                         help="pmDEC initial parameters [mean,dispertion,mean_f,dispertion_f]",
                          type=str,   default='' )
 
+    # MCMC setting     
+    parser.add_argument('-walker',       dest="walker",         action="store",
+                        help="Number of walkers to use for MCMC. Default = 50",
+                         type=int,   default=50 )
+    
+    parser.add_argument('-steps',       dest="steps",         action="store",
+                        help="Number of steps for each walkers to run in MCMC. Default = 20000",
+                         type=int,   default=20000 )
+
+    parser.add_argument('-burnin',       dest="burnin",         action="store",
+                        help="Number of burn in steps. Default = 15000",
+                         type=int,   default=15000 )
+
     #---- optional inputs ----
     parser.add_argument('-mode',       dest="mode",         action="store",
                         help="'solar' OR 'ob_stars'. Default='solar'",
@@ -320,7 +334,7 @@ if __name__ == "__main__":
     velocity, sigvel, mass, pmra, pmdec, epmra, epmdec = read_input(args)
     
     # mcmc setting 
-    nwalkers, nstep, nburn, fnrv, fnpmra, fnpmdec = mcmc_setting()
+    nwalkers, nstep, nburn, fnrv, fnpmra, fnpmdec = mcmc_setting(args)
 
     nbinaries = int(1e6)
     if args.mode.lower() == 'solar':

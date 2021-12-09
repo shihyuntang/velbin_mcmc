@@ -26,7 +26,10 @@ def main(args):
 Target OC name (csv file name): {}
 There are in total {} members
 Only {} ({:1.1%}) of them have Gaia DR2 RVs
--rv [{:1.1f},{:1.1f},{:1.1f},{:1.1f},0.5] -pmra [{:1.1f},{:1.1f},{:1.1f},{:1.1f}] -pmdec [{:1.1f},{:1.1f},{:1.1f},{:1.1f}]
+-rv [{:1.1f},{:1.1f},{:1.1f},{:1.1f},0.5] -pmra [{:1.1f},{:1.1f},{:1.1f},{:1.1f}] -pmdec [{:1.1f},{:1.1f},{:1.1f},{:1.1f}] 
+No need to change -walker -steps -burnin for the first run
+If run one result is not good, try -walker 50 -steps 35000 -burnin 30000
+(only suggestion...)
     """.format(args.filename, len(tb_org), len(tb_with_rv), len(tb_with_rv)/len(tb_org),
                np.mean(rv),    np.std(rv),    np.mean(rv),    np.std(rv),
                np.mean(pmra),  np.std(pmra),  np.mean(pmra),  np.std(pmra),
