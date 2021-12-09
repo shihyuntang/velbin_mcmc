@@ -277,7 +277,9 @@ if __name__ == "__main__":
 
     # global args
     args = parser.parse_args()
-    png_save_name = f'{args.filename.split("_")[0]}{args.filename.split("_")[1]}'
+    clean_name = args.filename.replace(' ', '')
+    clean_name = clean_name.replace('_', '')
+    png_save_name = clean_name
 
     os.environ["OMP_NUM_THREADS"] = "1"
     
