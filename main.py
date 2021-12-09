@@ -117,28 +117,22 @@ def read_input(args):
         epmdec float: proper motion dec err (mas/yr)
     """
     
-    dataorg = Table.read('./Input/500pc_refined_memberlist_sub/{}.csv'.format(args.filename))
-    print('data must have "RV_Jackson" RV, cleaning...')
+    tb_org = Table.read('./Input/500pc_refined_memberlist_sub/{}.csv'.format(args.filename))
     
-    # if (args.filename == 'Po0_withDMV') or (args.filename == 'Po2_withDMV') or (args.filename == 'Huluwa_1A') or (args.filename == 'Huluwa_1B'):
-    #     rvuseN    = 'HRV'
-    #     rvuseNerr = 'e_HRV'
-    # else:
-    #     rvuseN    = 'dr2_radial_velocity'
-    #     rvuseNerr = 'dr2_radial_velocity_error'
-
-    # dataclean = np.array(dataorg[dataorg[rvuseN]>-9000])
-
-    # velocity = np.array(dataclean[rvuseN])
-    # sigvel   = np.array(dataclean[rvuseNerr])
-    mass     = dataclean['Mass']
-
-    pmra     = np.array(dataclean['pmra'])
-    epmra    = np.array(dataclean['er_pmra'])
-    pmdec    = np.array(dataclean['pmdec'])
-    epmdec   = np.array(dataclean['er_pmdec'])
+    rvuseN = 'Gaia_radial_velocity'
+    rvuseNerr = 'er_Gaia_radial_velocity'
+    tb_with_rv = tb_org[ (tb_org[rvuseN]>-9000) ]
     
-    return velocity, sigvel, mass, pmra, pmdec, epmra, epmdec
+    rv = np.array(tb_with_rv[rvuseN])
+    erv   = np.array(tb_with_rv[rvuseNerr])
+    
+    mass     = tb_org['Mass']
+    pmra     = np.array(tb_org['pmra'])
+    epmra    = np.array(tb_org['er_pmra'])
+    pmdec    = np.array(tb_org['pmdec'])
+    epmdec   = np.array(tb_org['er_pmdec'])
+    
+    return rv, erv, mass, pmra, pmdec, epmra, epmdec
 
 
 # ==============================================================================
