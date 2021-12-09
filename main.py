@@ -103,6 +103,45 @@ def lnprior_pm(x, max_vmean, max_vmean_f):
     else:
         return 0
 
+
+def read_input(args):
+    """read in your observation data under the ./Input dir
+
+    Returns:
+        velocity float: rv (km/s)
+        sigvel float: rv error (km/s)
+        mass float: stellar mass (M_sun)
+        pmra float: proper motion ra (mas/yr)
+        pmdec float: proper motion dec (mas/yr)
+        epmra float: proper motion ra err (mas/yr)
+        epmdec float: proper motion dec err (mas/yr)
+    """
+    
+    dataorg = Table.read('./Input/500pc_refined_memberlist_sub/{}.csv'.format(args.filename))
+    print('data must have "RV_Jackson" RV, cleaning...')
+    
+    # if (args.filename == 'Po0_withDMV') or (args.filename == 'Po2_withDMV') or (args.filename == 'Huluwa_1A') or (args.filename == 'Huluwa_1B'):
+    #     rvuseN    = 'HRV'
+    #     rvuseNerr = 'e_HRV'
+    # else:
+    #     rvuseN    = 'dr2_radial_velocity'
+    #     rvuseNerr = 'dr2_radial_velocity_error'
+
+    # dataclean = np.array(dataorg[dataorg[rvuseN]>-9000])
+
+    # velocity = np.array(dataclean[rvuseN])
+    # sigvel   = np.array(dataclean[rvuseNerr])
+    mass     = dataclean['Mass']
+
+    pmra     = np.array(dataclean['pmra'])
+    epmra    = np.array(dataclean['er_pmra'])
+    pmdec    = np.array(dataclean['pmdec'])
+    epmdec   = np.array(dataclean['er_pmdec'])
+    
+    return velocity, sigvel, mass, pmra, pmdec, epmra, epmdec
+
+
+# ==============================================================================
 # you probably don't need to touch stuff below... 
 # if you don't know what you are doing...
 def lnprob_rv(x, lnlike, max_vmean, max_vmean_f):
@@ -143,54 +182,6 @@ def lnprob_pm(x, pm, sig_pm, max_vmean, max_vmean_f):
         return -np.inf
 
     return lp + ln_pm(x, pm, sig_pm)
-
-def read_input(args):
-    """read in your observation data under the ./Input dir
-
-    Returns:
-        velocity float: rv (km/s)
-        sigvel float: rv error (km/s)
-        mass float: stellar mass (M_sun)
-        pmra float: proper motion ra (mas/yr)
-        pmdec float: proper motion dec (mas/yr)
-        epmra float: proper motion ra err (mas/yr)
-        epmdec float: proper motion dec err (mas/yr)
-    """
-    
-    dataorg = Table.read('./Input/{}.fits'.format(args.filename))
-    print('data must have "RV_Jackson" RV, cleaning...')
-
-    # if (args.filename == 'Coma_Berenices_rv_dr3_tr') or (args.filename == 'NGC_6774_rv_dr3_tr'):
-    #     rvuseN    = 'dr2_radial_velocity'
-    #     rvuseNerr = 'dr2_radial_velocity_error'
-    #
-    # elif args.filename == 'NGC_2422_rv_dr3_tr':
-    #     rvuseN    = 'RV_Bailey'
-    #     rvuseNerr = 'e_RV_Bailey'
-    #
-    # else:
-    #     rvuseN    = 'RV_Jackson'
-    #     rvuseNerr = 'e_RV_Jackson'
-    
-    if (args.filename == 'Po0_withDMV') or (args.filename == 'Po2_withDMV') or (args.filename == 'Huluwa_1A') or (args.filename == 'Huluwa_1B'):
-        rvuseN    = 'HRV'
-        rvuseNerr = 'e_HRV'
-    else:
-        rvuseN    = 'dr2_radial_velocity'
-        rvuseNerr = 'dr2_radial_velocity_error'
-
-    dataclean = np.array(dataorg[dataorg[rvuseN]>-9000])
-
-    velocity = np.array(dataclean[rvuseN])
-    sigvel   = np.array(dataclean[rvuseNerr])
-    mass     = dataclean['Mass']
-
-    pmra     = np.array(dataclean['pmra'])
-    epmra    = np.array(dataclean['pmra_error'])
-    pmdec    = np.array(dataclean['pmdec'])
-    epmdec   = np.array(dataclean['pmdec_error'])
-    
-    return velocity, sigvel, mass, pmra, pmdec, epmra, epmdec
     
 
 def solar(args, nbinaries):

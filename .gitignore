@@ -6,3 +6,4 @@ Input_all/**
 *.zip
 *.cpython-37.pyc
 function/__pycache__/**
+*.pyc
