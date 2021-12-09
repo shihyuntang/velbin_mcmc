@@ -10,16 +10,16 @@ def main(args):
     
     rvuseN = 'Gaia_radial_velocity'
     rvuseNerr = 'er_Gaia_radial_velocity'
-    tb_with_rv = tb_with_rv[ (tb_with_rv[rvuseN]>-9000) ]
+    tb_with_rv = tb_org[ (tb_org[rvuseN]>-9000) ]
     
     rv = np.array(tb_with_rv[rvuseN])
     erv   = np.array(tb_with_rv[rvuseNerr])
     
-    mass     = tb_with_rv['Mass']
-    pmra     = np.array(tb_with_rv['pmra'])
-    epmra    = np.array(tb_with_rv['er_pmra'])
-    pmdec    = np.array(tb_with_rv['pmdec'])
-    epmdec   = np.array(tb_with_rv['er_pmdec'])
+    mass     = tb_org['Mass']
+    pmra     = np.array(tb_org['pmra'])
+    epmra    = np.array(tb_org['er_pmra'])
+    pmdec    = np.array(tb_org['pmdec'])
+    epmdec   = np.array(tb_org['er_pmdec'])
     
     
     print("""\n
