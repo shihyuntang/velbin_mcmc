@@ -75,16 +75,21 @@ def cornerplot(fn, nburn, ndim, nthin, png_save_name, partype):
         ax.xaxis.get_label().set_fontsize(8)
         ax.xaxis.get_label().set_fontstyle(fig_style)
         ax.xaxis.get_label().set_fontfamily(fig_family)
+    
+    if 'velbin' in os.getcwd().split('/')[-1]:
+        pre_dir = './figs'
+    elif 'function' in os.getcwd().split('/')[-1]:
+        pre_dir = '../figs'
         
-    filesndirs = os.listdir(f'./figs')
+    filesndirs = os.listdir(pre_dir)
     trk = 1; go = True
     while go :
-        name = f'./figs/{png_save_name}_{partype}_mcmc_{trk}.png'
+        name = f'{png_save_name}_{partype}_mcmc_{trk}.png'
         if name not in filesndirs:
             break
         trk += 1
 
-    f.savefig(name, format='png', bbox_inches='tight')
+    f.savefig(f'{pre_dir}/{name}', format='png', bbox_inches='tight')
  
     
     
