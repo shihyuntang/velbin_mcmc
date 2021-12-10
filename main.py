@@ -347,7 +347,10 @@ if __name__ == "__main__":
         print('Using the "single_epoch" mode to fit... \n')
 
         if doRV : 
-            clean_h5(fnrv)  
+            try:
+                clean_h5(fnrv)
+            except FileNotFoundError:
+                pass
             lnlike = all_binaries.single_epoch(velocity, sigvel, mass, F_yn, 
                                            log_minv=-3, log_maxv=None, 
                                            log_stepv=0.02)
@@ -407,7 +410,10 @@ if __name__ == "__main__":
 
         #-----------------------------------------------------------------------------------
         if doPMra :
-            clean_h5(fnpmra)  
+            try:
+                clean_h5(fnpmra)  
+            except FileNotFoundError:
+                pass
         # nwalkers, nstep, nburn = 200, 50000, 45000 # for pmRA and pmDEC
         # nwalkers, nstep, nburn = 50, 30000, 25000
         
@@ -452,7 +458,10 @@ if __name__ == "__main__":
 
         #-----------------------------------------------------------------------------------
         if doPMdec:
-            clean_h5(fnpmdec)  
+            try:
+                clean_h5(fnpmdec)  
+            except FileNotFoundError:
+                pass
             
             nll = lambda *argsss: -ln_pm(*argsss)
 
