@@ -139,5 +139,5 @@ if __name__ == "__main__":
         ndim = 4
         fn = "pmdec_mcmcsave.h5"
     
-    print(fn, args.burnin, ndim, 20, png_save_name, partyp)
+    print(fn, args.burnin, ndim, 20, png_save_name, partype)
     cornerplot(fn, args.burnin, ndim, 20, png_save_name, partype)
