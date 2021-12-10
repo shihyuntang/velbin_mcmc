@@ -139,7 +139,7 @@ def read_input(args):
 # ==============================================================================
 # you probably don't need to touch stuff below... 
 # if you don't know what you are doing...
-def lnprob_rv(x, velocity, sigvel, mass, max_vmean, max_vmean_f, F_yn):
+def lnprob_rv(x, lnlike, max_vmean, max_vmean_f):
     """posterior for rv 
 
     Args:
@@ -156,7 +156,7 @@ def lnprob_rv(x, velocity, sigvel, mass, max_vmean, max_vmean_f, F_yn):
     if not np.isfinite(lp):
         return -np.inf
     
-    return lp + ln_rv(x, velocity, sigvel, mass, F_yn)
+    return lp + lnlike(x)
 
 
 def lnprob_pm(x, pm, sig_pm, max_vmean, max_vmean_f):
@@ -178,7 +178,8 @@ def lnprob_pm(x, pm, sig_pm, max_vmean, max_vmean_f):
 
     return lp + ln_pm(x, pm, sig_pm)
     
-def ln_rv(x, velocity, sigvel, mass, F_yn):    
+def ln_rv(velocity, sigvel, mass, F_yn):   
+    global args 
     nbinaries = int(1e6)
     all_binaries = solar(args, nbinaries=nbinaries )
     lnlike = all_binaries.single_epoch(velocity, sigvel, mass, F_yn, 
@@ -393,10 +394,7 @@ if __name__ == "__main__":
                 with Pool() as pool:
                     # if not run_max:
                     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_rv,
-                                                    args=(velocity, sigvel, mass, 
-                                                          initial[0], 
-                                                          initial[3],
-                                                          F_yn),
+                                                    args=(lnlike, max_vmean, max_vmean_f),
                                                     backend=backend, pool=pool)
                     
                     # sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_rv,
