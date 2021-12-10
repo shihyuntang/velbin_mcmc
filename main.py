@@ -236,6 +236,16 @@ def pm_max_like(nll, initial, rxORdec='RA'):
     
     return initial, run_max, max_vmean, max_vmean_f
 
+def clean_h5(dd):
+    # remove previous .h5 file to save space
+    # dir_list = os.listdir()
+    # for dd in dir_list:
+    #     if '.h' in dd:
+    #         os.remove(dd)
+    #         print(f'Clean {dd}')
+    os.remove(dd)
+    print(f'Clean {dd}')
+            
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -291,12 +301,7 @@ if __name__ == "__main__":
 
     os.environ["OMP_NUM_THREADS"] = "1"
     
-    # remove previous .h5 file to save space
-    dir_list = os.listdir()
-    for dd in dir_list:
-        if '.h' in dd:
-            os.remove(dd)
-            print(f'Clean {dd}')
+
 
     if len(args.rv) != 0:
         doRV = 1
@@ -341,7 +346,8 @@ if __name__ == "__main__":
         all_binaries = solar(args, nbinaries=nbinaries )
         print('Using the "single_epoch" mode to fit... \n')
 
-        if doRV :   
+        if doRV : 
+            clean_h5(fnrv)  
             lnlike = all_binaries.single_epoch(velocity, sigvel, mass, F_yn, 
                                            log_minv=-3, log_maxv=None, 
                                            log_stepv=0.02)
@@ -401,6 +407,7 @@ if __name__ == "__main__":
 
         #-----------------------------------------------------------------------------------
         if doPMra :
+            clean_h5(fnpmra)  
         # nwalkers, nstep, nburn = 200, 50000, 45000 # for pmRA and pmDEC
         # nwalkers, nstep, nburn = 50, 30000, 25000
         
@@ -445,6 +452,7 @@ if __name__ == "__main__":
 
         #-----------------------------------------------------------------------------------
         if doPMdec:
+            clean_h5(fnpmdec)  
             
             nll = lambda *argsss: -ln_pm(*argsss)
 

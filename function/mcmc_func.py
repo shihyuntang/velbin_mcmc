@@ -6,6 +6,7 @@ by Shih-Yun Tang Dec. 2, 2020
 import numpy as np
 import corner, emcee, os
 import matplotlib.pyplot as plt
+import sys, os, argparse, ast, itertools
 
 fig_dpi      = 300
 fig_typeface = 'Helvetica'
@@ -87,5 +88,55 @@ def cornerplot(fn, nburn, ndim, nthin, png_save_name, partype):
  
     
     
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(
+                                     prog        = 'modified the velbin code',
+                                     description = '''
+                                     modified velbin code.
+                                     ''',
+                                     epilog = "Contact author: sytang@lowell.edu")
     
+    parser.add_argument("filename",                          action="store",
+                        help="Enter your filename you wish you use under ./Input/", type=str)
     
+    parser.add_argument('-type',       dest="Type",         action="store",
+                        help="Number of walkers to use for MCMC.",
+                         type=str,   default="" )
+
+    # MCMC setting     
+    parser.add_argument('-walker',       dest="walker",         action="store",
+                        help="Number of walkers to use for MCMC. Default = 50",
+                         type=int,   default=50 )
+    
+    parser.add_argument('-steps',       dest="steps",         action="store",
+                        help="Number of steps for each walkers to run in MCMC. Default = 20000",
+                         type=int,   default=20000 )
+
+    parser.add_argument('-burnin',       dest="burnin",         action="store",
+                        help="Number of burn in steps. Default = 15000",
+                         type=int,   default=15000 )
+
+
+    args = parser.parse_args()
+    
+    clean_name = args.filename.replace(' ', '')
+    clean_name = clean_name.replace('_', '')
+    png_save_name = clean_name
+    
+    plot_type = args.Type.lower()
+    
+    if plot_type == 'rv':
+        partype = 'rv'
+        ndim = 5
+        fn = "rv_mcmcsave.h5"
+    elif plot_type == 'pmra':
+        partype = 'pmra'
+        ndim = 4
+        fn = "pmra_mcmcsave.h5"
+    elif plot_type == 'pmdec':
+        partype = 'pmdec'
+        ndim = 4
+        fn = "pmdec_mcmcsave.h5"
+    
+    cornerplot(fn, nburn, ndim, 20, png_save_name, partype)
