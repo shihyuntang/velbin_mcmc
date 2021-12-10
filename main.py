@@ -394,7 +394,9 @@ if __name__ == "__main__":
                 with Pool() as pool:
                     # if not run_max:
                     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_rv,
-                                                    args=(lnlike, max_vmean, max_vmean_f),
+                                                    args=(lnlike, 
+                                                          initial[0],
+                                                          initial[3]),
                                                     backend=backend, pool=pool)
                     
                     # sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_rv,
