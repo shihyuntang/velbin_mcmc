@@ -105,13 +105,13 @@ if __name__ == "__main__":
                          type=str,   default="" )
 
     # MCMC setting     
-    parser.add_argument('-walker',       dest="walker",         action="store",
-                        help="Number of walkers to use for MCMC. Default = 50",
-                         type=int,   default=50 )
+    # parser.add_argument('-walker',       dest="walker",         action="store",
+    #                     help="Number of walkers to use for MCMC. Default = 50",
+    #                      type=int,   default=50 )
     
-    parser.add_argument('-steps',       dest="steps",         action="store",
-                        help="Number of steps for each walkers to run in MCMC. Default = 20000",
-                         type=int,   default=20000 )
+    # parser.add_argument('-steps',       dest="steps",         action="store",
+    #                     help="Number of steps for each walkers to run in MCMC. Default = 20000",
+    #                      type=int,   default=20000 )
 
     parser.add_argument('-burnin',       dest="burnin",         action="store",
                         help="Number of burn in steps. Default = 15000",
@@ -139,4 +139,4 @@ if __name__ == "__main__":
         ndim = 4
         fn = "pmdec_mcmcsave.h5"
     
-    cornerplot(fn, nburn, ndim, 20, png_save_name, partype)
+    cornerplot(fn, args.burnin, ndim, 20, png_save_name, partype)
