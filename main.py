@@ -52,14 +52,16 @@ def lnprior_rv(x, max_vmean, max_vmean_f):
 
     # uniform priors
     # only change: vmean_range
-    vmean_range = 50
-    uni_rv_mean   = (vmean > (max_vmean-vmean_range)) & (vmean < (max_vmean+vmean_range)) 
-    uni_rv_mean_f = (vmean_f > (max_vmean_f-vmean_range)) & (vmean_f < (max_vmean_f+vmean_range))
+    vmean_range_cluster = 50
+    vmean_range_field = 50
+    uni_rv_mean   = (vmean > (max_vmean-vmean_range_cluster)) & (vmean < (max_vmean+vmean_range_cluster)) 
+    uni_rv_mean_f = (vmean_f > (max_vmean_f-vmean_range_field)) & (vmean_f < (max_vmean_f+vmean_range_field))
     
     # only change: vdisp_range
-    vdisp_range = 10.0
-    uni_rv_disp   = (vdisp   > 0.0) & (vdisp   < vdisp_range)
-    uni_rv_disp_f = (vdisp_f > 0.0) & (vdisp_f < vdisp_range)
+    vdisp_range_cluster = 10.0
+    vdisp_range_field = 10.0
+    uni_rv_disp   = (vdisp   > 0.0) & (vdisp   < vdisp_range_cluster)
+    uni_rv_disp_f = (vdisp_f > 0.0) & (vdisp_f < vdisp_range_field)
     
     # you might not need to change this...
     uni_rv_fbin   = (fbin    > 0.0)              & (fbin < 1.)
@@ -88,14 +90,16 @@ def lnprior_pm(x, max_vmean, max_vmean_f):
 
     # uniform priors
     # only change: vmean_range
-    vmean_range = 50
-    uni_pm_mean   = (pm_mean > (max_vmean-vmean_range) ) & (pm_mean < (max_vmean+vmean_range)) 
-    uni_pm_mean_f = (pm_mean_f > (max_vmean_f-vmean_range)) & (pm_mean_f < (max_vmean_f+vmean_range))
+    vmean_range_cluster = 50
+    vmean_range_field = 50
+    uni_pm_mean   = (pm_mean > (max_vmean-vmean_range_cluster) ) & (pm_mean < (max_vmean+vmean_range_cluster)) 
+    uni_pm_mean_f = (pm_mean_f > (max_vmean_f-vmean_range_field)) & (pm_mean_f < (max_vmean_f+vmean_range_field))
     
     # only change: vdisp_range 
-    vdisp_range = 1.5    
-    uni_pm_disp   = (pm_disp   > 0.0) & (pm_disp   < vdisp_range)
-    uni_pm_disp_f = (pm_disp_f > 0.0) & (pm_disp_f < vdisp_range)
+    vdisp_range_cluster = 1.5
+    vdisp_range_field = 1.5 
+    uni_pm_disp   = (pm_disp   > 0.0) & (pm_disp   < vdisp_range_cluster)
+    uni_pm_disp_f = (pm_disp_f > 0.0) & (pm_disp_f < vdisp_range_field)
 
     uni_all = uni_pm_mean & uni_pm_disp & uni_pm_mean_f & uni_pm_disp_f
 
