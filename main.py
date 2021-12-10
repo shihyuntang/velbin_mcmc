@@ -126,8 +126,9 @@ def read_input(args):
     
     rv = np.array(tb_with_rv[rvuseN])
     erv   = np.array(tb_with_rv[rvuseNerr])
+    mass  = np.array(tb_with_rv['Mass'])
     
-    mass     = tb_org['Mass']
+    
     pmra     = np.array(tb_org['pmra'])
     epmra    = np.array(tb_org['er_pmra'])
     pmdec    = np.array(tb_org['pmdec'])
