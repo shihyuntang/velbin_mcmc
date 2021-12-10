@@ -179,7 +179,7 @@ def lnprob_pm(x, pm, sig_pm, max_vmean, max_vmean_f):
     return lp + ln_pm(x, pm, sig_pm)
     
 def ln_rv(x, velocity, sigvel, mass, F_yn):    
-    nbinaries = np.int(1e6)
+    nbinaries = int(1e6)
     all_binaries = solar(args, nbinaries=nbinaries )
     lnlike = all_binaries.single_epoch(velocity, sigvel, mass, F_yn, 
                                        log_minv=-3, log_maxv=None, log_stepv=0.02)
