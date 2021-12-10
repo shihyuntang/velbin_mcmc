@@ -155,8 +155,6 @@ def lnprob_rv(x, velocity, sigvel, mass, max_vmean, max_vmean_f, F_yn):
 
     if not np.isfinite(lp):
         return -np.inf
-
-    vmean, vdisp, fbin, vmean_f, vdisp_f = x
     
     return lp + ln_rv(x, velocity, sigvel, mass, F_yn)
 
