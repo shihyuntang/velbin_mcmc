@@ -8,6 +8,8 @@ import corner, emcee, os
 import matplotlib.pyplot as plt
 import sys, os, argparse, ast, itertools
 
+from  function.binaries import *
+
 fig_dpi      = 300
 fig_typeface = 'Helvetica'
 fig_family   = 'monospace'
