@@ -26,14 +26,6 @@ def ln_pm(x, pm, pm_sig):
     return np.sum(np.log(result))
 
 
-def ln_rv(velocity, sigvel, mass, F_yn):
-    global args
-    nbinaries = np.int(1e6)
-    all_binaries = solar(args, nbinaries=nbinaries )
-    lnlike = all_binaries.single_epoch(velocity, sigvel, mass, F_yn, log_minv=-3, log_maxv=None, log_stepv=0.02)
-    return lnlike
-
-
 def cornerplot(fn, nburn, ndim, nthin, png_save_name, partype):
     reader = emcee.backends.HDFBackend(fn)
     samples = reader.get_chain(discard=nburn, thin=nthin, flat=True)

@@ -139,7 +139,7 @@ def read_input(args):
 # ==============================================================================
 # you probably don't need to touch stuff below... 
 # if you don't know what you are doing...
-def lnprob_rv(x, lnlike, max_vmean, max_vmean_f):
+def lnprob_rv(x, velocity, sigvel, mass, max_vmean, max_vmean_f, F_yn):
     """posterior for rv 
 
     Args:
@@ -156,7 +156,9 @@ def lnprob_rv(x, lnlike, max_vmean, max_vmean_f):
     if not np.isfinite(lp):
         return -np.inf
 
-    return lp + lnlike(x)
+    vmean, vdisp, fbin, vmean_f, vdisp_f = x
+    
+    return lp + ln_rv(x, velocity, sigvel, mass, F_yn)
 
 
 def lnprob_pm(x, pm, sig_pm, max_vmean, max_vmean_f):
@@ -178,6 +180,13 @@ def lnprob_pm(x, pm, sig_pm, max_vmean, max_vmean_f):
 
     return lp + ln_pm(x, pm, sig_pm)
     
+def ln_rv(x, velocity, sigvel, mass, F_yn):    
+    nbinaries = np.int(1e6)
+    all_binaries = solar(args, nbinaries=nbinaries )
+    lnlike = all_binaries.single_epoch(velocity, sigvel, mass, F_yn, 
+                                       log_minv=-3, log_maxv=None, log_stepv=0.02)
+    return lnlike
+
 
 def solar(args, nbinaries):
     """Returns a randomly generated dataset of `nbinaries` solar-type binaries.
@@ -293,7 +302,7 @@ if __name__ == "__main__":
                         help="pre-loaded: flat, Reggiani13, Sana12, Sana13, Kiminki12. Default = flat",
                         type=str,   default='flat' )
 
-    # global args
+    global args
     args = parser.parse_args()
     clean_name = args.filename.replace(' ', '')
     clean_name = clean_name.replace('_', '')
@@ -386,8 +395,10 @@ if __name__ == "__main__":
                 with Pool() as pool:
                     # if not run_max:
                     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_rv,
-                                                    args=(lnlike, initial[0], 
-                                                          initial[3]),
+                                                    args=(velocity, sigvel, mass, 
+                                                          initial[0], 
+                                                          initial[3],
+                                                          F_yn),
                                                     backend=backend, pool=pool)
                     
                     # sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_rv,
