@@ -4,7 +4,6 @@ import itertools
 from function.fitter import *
 
 
-
 class OrbitalParameters:
     """Record array containing a large amount of randomly generated binaries.
 
@@ -24,7 +23,7 @@ class OrbitalParameters:
     - `fake_dataset`: Creates a single- or multi-epoch fake radial velocity dataset for Monte Carlo simulations.
     """
     def __init__(self, nbinaries):
-        arr = np.ones(nbinaries, dtype=np.dtype([(name, np.float) for name in ['period', 'mass_ratio', 'eccentricity', 'phase', 'theta', 'inclination']]))
+        arr = np.ones(nbinaries, dtype=np.dtype([(name, float) for name in ['period', 'mass_ratio', 'eccentricity', 'phase', 'theta', 'inclination']]))
         arr['eccentricity'] = 0.
         arr['phase'] = np.random.rand(nbinaries)
         arr['theta'] = np.random.rand(nbinaries) * 2 * np.pi
@@ -194,17 +193,25 @@ class OrbitalParameters:
         velocity = np.array([vlos, vperp]) * self.semi_major(mass) / (self.arr['period'] * (1 + 1 / self.arr['mass_ratio'])) * 4.74057581
         return velocity
 
-    def single_epoch(self, velocity, sigvel, mass, F_yn, log_minv=-3, log_maxv=None, log_stepv=0.02):
-        """Returns a callable Basefitter which computes the log-likelihood to reproduce the observed single-epoch radial velocity distribution.
+    def single_epoch(
+            self, velocity, sigvel, mass, F_yn, log_minv=-3, log_maxv=None, 
+            log_stepv=0.02):
+        """Returns a callable Basefitter which computes the log-likelihood 
+        to reproduce the observed single-epoch radial velocity distribution.
 
-        Uses the current settings of the binary properties to calculate the distribution of radial velocity offsets due to binary orbital motions.
+        Uses the current settings of the binary properties to calculate the 
+        distribution of radial velocity offsets due to binary orbital motions.
 
         Arguments:
         - `velocity`: 1D array-like giving velocities in km/s.
-        - `sigvel`: 1D array-like (or single number) giving measurement uncertainties in km/s.
-        - `mass`: 1D array-like (or single number) giving best estimate for mass of the observed stars in solar masses.
-        - `log_minv`: 10_log of the lowest velocity bin in km/s (should be significantly smaller than the velocity dispersion).
-        - `log_maxv`: 10_log maximum of the largest velocity bin (default: logarithm of maximum velocity)
+        - `sigvel`: 1D array-like (or single number) giving measurement 
+            uncertainties in km/s.
+        - `mass`: 1D array-like (or single number) giving best estimate for 
+            mass of the observed stars in solar masses.
+        - `log_minv`: 10_log of the lowest velocity bin in km/s 
+            (should be significantly smaller than the velocity dispersion).
+        - `log_maxv`: 10_log maximum of the largest velocity bin 
+            (default: logarithm of maximum velocity)
         - `log_stepv`: step size in 10_log(velocity) space.
         """
         vel = np.sort(np.sum(self.velocity(1.) ** 2., 0) ** .5)
@@ -293,7 +300,7 @@ class OrbitalParameters:
                 rv_offset_mean = sp.sum(rv_offset_per_epoch * weight[sp.newaxis, :], -1) / sp.sum(weight)
                 chisq = sp.sum((rv_offset_per_epoch - rv_offset_mean[:, sp.newaxis]) ** 2. * weight[sp.newaxis, :], -1)
                 isdetected = sp.stats.chisqprob(chisq, len(epochs) - 1) < pfalse
-                pdet = np.float(sp.sum(isdetected)) / isdetected.size
+                pdet = float(sp.sum(isdetected)) / isdetected.size
                 rv_binoffset = (sp.sum(rv_binoffset_per_epoch * weight[sp.newaxis, :], -1) / sp.sum(weight))[~isdetected]
 
                 mean_rv = sp.sum(mult_vel * weight) / sp.sum(weight)
@@ -319,10 +326,12 @@ class OrbitalParameters:
 
         return fitter.BinaryFit(vmean, sigmean, single_mass, vbound, pbin, pdet_single, pdet_rvvar, is_single)
 
-    def fake_dataset(self, nvel, vdisp, fbin, sigvel, mass=1., dates=(0., ), vmean=0.):
+    def fake_dataset(
+            self, nvel, vdisp, fbin, sigvel, mass=1., dates=(0., ), vmean=0.):
         """Creates a fake single-epoch radial velocity data for Monte Carlo simulations.
 
-        Note that multiple calls will use the same binary properties. Redraw the binary properties to get a new set.
+        Note that multiple calls will use the same binary properties. 
+        Redraw the binary properties to get a new set.
 
         Arguments:
         - `nvel`: number of velocities to draw.
@@ -334,7 +343,10 @@ class OrbitalParameters:
         - `vmean`: mean velocity in km/s.
         """
         v_systematic = sp.randn(nvel) * vdisp
-        v_bin_offset = sp.array([self[:nvel].velocity(mass, time)[0, :] for time in dates])
+        v_bin_offset = sp.array(
+            [self[:nvel].velocity(mass, time)[0, :] for time in dates]
+            )
         v_bin_offset[:, sp.rand(nvel) > fbin] = 0.
-        v_meas_offset = sp.randn(v_bin_offset.size).reshape(v_bin_offset.shape) * sp.atleast_1d(sigvel)[:, sp.newaxis]
+        v_meas_offset = sp.randn(
+            v_bin_offset.size).reshape(v_bin_offset.shape) * sp.atleast_1d(sigvel)[:, sp.newaxis]
         return sp.squeeze(v_systematic[sp.newaxis, :] + v_bin_offset + v_meas_offset)

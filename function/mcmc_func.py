@@ -8,6 +8,10 @@ import corner, emcee, os
 import matplotlib.pyplot as plt
 import sys, os, argparse, ast, itertools
 
+# ignore matplotlib warning
+import warnings
+warnings.filterwarnings("ignore")
+
 from  function.binaries import *
 
 fig_dpi      = 300
@@ -30,7 +34,10 @@ def cornerplot(fn, nburn, ndim, nthin, png_save_name, partype):
     reader = emcee.backends.HDFBackend(fn)
     samples = reader.get_chain(discard=nburn, thin=nthin, flat=True)
 
-    f, ax = plt.subplots(ndim, ndim, figsize=(ndim+1, ndim+1), facecolor='white', dpi=300, gridspec_kw={'hspace': .05, 'wspace': 0.05})
+    f, ax = plt.subplots(
+        ndim, ndim, figsize=(ndim+1, ndim+1), facecolor='white', 
+        dpi=300, gridspec_kw={'hspace': .05, 'wspace': 0.05}
+        )
 
     if ndim == 4:
         labb = ["vmean", r"vdisp", r"vmean_f", "vdisp_f"]
@@ -48,7 +55,9 @@ def cornerplot(fn, nburn, ndim, nthin, png_save_name, partype):
     for yi in range(ndim):
         for xi in range(yi):
             ax = axes[yi, xi]
-            ax.tick_params(axis='both', which ='both', labelsize=6, right=True, top=True, direction='in', width=.4)
+            ax.tick_params(
+                axis='both', which ='both', labelsize=6, right=True, 
+                top=True, direction='in', width=.4)
 
             ax.yaxis.get_label().set_fontsize(8)
             ax.yaxis.get_label().set_fontstyle(fig_style)
@@ -64,7 +73,10 @@ def cornerplot(fn, nburn, ndim, nthin, png_save_name, partype):
 
     for i in range(ndim):
         ax = axes[i, i]
-        ax.tick_params(axis='both', which ='both', labelsize=6, right=True, top=True, direction='in', width=.4)
+        ax.tick_params(
+            axis='both', which ='both', labelsize=6, right=True, 
+            top=True, direction='in', width=.4
+            )
 
         ax.xaxis.get_label().set_fontsize(8)
         ax.xaxis.get_label().set_fontstyle(fig_style)

@@ -20,7 +20,7 @@ def mcmc_setting(args):
                         the corner plot 
                         (so your final sampled number are nstep-nburn)
         
-        In general, 100 walkers are pertty good for this work.
+        In general, 100 walkers are pretty good for this work.
         If you still see burn in in your corner plot, try to increase 
         the nstep and the nburn
     """
@@ -28,6 +28,8 @@ def mcmc_setting(args):
     # nwalkers, nstep, nburn = 100, 25000, 20000  # for RV only...
     # nwalkers, nstep, nburn = 50, 30000, 20000  # for RV only...
     nwalkers, nstep, nburn = args.walker, args.steps, args.burnin  # for RV only...
+
+    # mcmc results save file name
     fnrv      = "rv_mcmcsave.h5"
     fnpmra    = "pmra_mcmcsave.h5"
     fnpmdec   = "pmdec_mcmcsave.h5"
@@ -38,7 +40,7 @@ def lnprior_rv(x, max_vmean, max_vmean_f):
     """log prior for the RV data.
     Change the values here to narrow down the range your walkers walk, 
     and hope to speed up the MCMC.
-    But, do not give a too tight constrain for getting a biased distrebution
+    But, do not give a too tight constrain for getting a biased distribution
 
     Args:
         x (list): stored par.
@@ -48,25 +50,26 @@ def lnprior_rv(x, max_vmean, max_vmean_f):
     Returns:
         float: log prior probability
     """
-    vmean, vdisp, fbin, vmean_f, vdisp_f = x
+    # vmean, vdisp, fbin, vmean_f, vdisp_f = x
+    vmean, vdisp, vmean_f, vdisp_f = x
 
     # uniform priors
-    # only change: vmean_range
+    # only change: vmean_range_xxxx
     vmean_range_cluster = 50
     vmean_range_field = 50
     uni_rv_mean   = (vmean > (max_vmean-vmean_range_cluster)) & (vmean < (max_vmean+vmean_range_cluster)) 
     uni_rv_mean_f = (vmean_f > (max_vmean_f-vmean_range_field)) & (vmean_f < (max_vmean_f+vmean_range_field))
     
-    # only change: vdisp_range
-    vdisp_range_cluster = 10.0
-    vdisp_range_field = 10.0
+    # only change: vdisp_range_xxxx
+    vdisp_range_cluster = 50.0
+    vdisp_range_field = 50.0
     uni_rv_disp   = (vdisp   > 0.0) & (vdisp   < vdisp_range_cluster)
     uni_rv_disp_f = (vdisp_f > 0.0) & (vdisp_f < vdisp_range_field)
     
-    # you might not need to change this...
-    uni_rv_fbin   = (fbin    > 0.0)              & (fbin < 1.)
+    # you might not need to change this, binary fraction...
+    # uni_rv_fbin   = (fbin    > 0.0)              & (fbin < 1.)
 
-    uni_all = uni_rv_mean & uni_rv_disp & uni_rv_mean_f & uni_rv_disp_f & uni_rv_fbin
+    uni_all = uni_rv_mean & uni_rv_disp & uni_rv_mean_f & uni_rv_disp_f # & uni_rv_fbin
     if not uni_all:
         return -np.inf
     else:
@@ -96,8 +99,8 @@ def lnprior_pm(x, max_vmean, max_vmean_f):
     uni_pm_mean_f = (pm_mean_f > (max_vmean_f-vmean_range_field)) & (pm_mean_f < (max_vmean_f+vmean_range_field))
     
     # only change: vdisp_range 
-    vdisp_range_cluster = 1.5
-    vdisp_range_field = 1.5 
+    vdisp_range_cluster = 50
+    vdisp_range_field = 50
     uni_pm_disp   = (pm_disp   > 0.0) & (pm_disp   < vdisp_range_cluster)
     uni_pm_disp_f = (pm_disp_f > 0.0) & (pm_disp_f < vdisp_range_field)
 
@@ -114,7 +117,7 @@ def read_input(args):
 
     Returns:
         velocity float: rv (km/s)
-        sigvel float: rv error (km/s)
+        e_velocity float: rv error (km/s)
         mass float: stellar mass (M_sun)
         pmra float: proper motion ra (mas/yr)
         pmdec float: proper motion dec (mas/yr)
@@ -122,36 +125,41 @@ def read_input(args):
         epmdec float: proper motion dec err (mas/yr)
     """
     
-    tb_org = Table.read('./Input/500pc_refined_memberlist_sub/{}.csv'.format(args.filename))
+    tb_org = Table.read('./Input/{}'.format(args.filename))
     
-    rvuseN = 'Gaia_radial_velocity'
-    rvuseNerr = 'er_Gaia_radial_velocity'
+    # column name to be read
+    rvuseN = 'dr2_radial_velocity'
+    rvuseNerr = 'dr2_radial_velocity_error'
+    # rvuseN = 'RV_Jackson'
+    # rvuseNerr = 'e_RV_Jackson'
+    
+    # if RV use -9999 as nan value, clean our -9999
     tb_with_rv = tb_org[ (tb_org[rvuseN]>-9000) ]
     
     rv = np.array(tb_with_rv[rvuseN])
     erv   = np.array(tb_with_rv[rvuseNerr])
     mass  = np.array(tb_with_rv['Mass'])
     
-    
     pmra     = np.array(tb_org['pmra'])
-    epmra    = np.array(tb_org['er_pmra'])
+    epmra    = np.array(tb_org['pmra_error'])
     pmdec    = np.array(tb_org['pmdec'])
-    epmdec   = np.array(tb_org['er_pmdec'])
+    epmdec   = np.array(tb_org['pmdec_error'])
     
     return rv, erv, mass, pmra, pmdec, epmra, epmdec
 
 
 # ==============================================================================
+# ==============================================================================
 # you probably don't need to touch stuff below... 
 # if you don't know what you are doing...
-def lnprob_rv(x, lnlike, max_vmean, max_vmean_f):
-    """posterior for rv 
+def lnprob_rv(x, lnlike, max_vmean, max_vmean_f, fbin):
+    """ln probability for rv 
 
     Args:
         x (list): stored par.
-        lnlike (func): linkelihook function
-        max_vmean (float): mean pm(ra or dec) you inputted
-        max_vmean_f (float): mean field pm(ra or dec) you inputted
+        lnlike (func): ln likelihood function
+        max_vmean (float): mean rv you inputted
+        max_vmean_f (float): mean field rv you inputted
 
     Returns:
         float: posterior probability
@@ -161,15 +169,16 @@ def lnprob_rv(x, lnlike, max_vmean, max_vmean_f):
     if not np.isfinite(lp):
         return -np.inf
     
-    return lp + lnlike(x)
+    # lnlike(x) will call BinaryFit-->individual_log_likelihood, and use fbin
+    return lp + lnlike(x, fbin)
 
 
 def lnprob_pm(x, pm, sig_pm, max_vmean, max_vmean_f):
-    """posterior for rv 
+    """ln probability for pm
 
     Args:
         x (list): stored par.
-        lnlike (func): linkelihook function
+        lnlike (func): ln likelihood function
         max_vmean (float): mean pm(ra or dec) you inputted
         max_vmean_f (float): mean field pm(ra or dec) you inputted
 
@@ -183,13 +192,13 @@ def lnprob_pm(x, pm, sig_pm, max_vmean, max_vmean_f):
 
     return lp + ln_pm(x, pm, sig_pm)
     
-def ln_rv(velocity, sigvel, mass, F_yn):   
-    global args 
-    nbinaries = int(1e6)
-    all_binaries = solar(args, nbinaries=nbinaries )
-    lnlike = all_binaries.single_epoch(velocity, sigvel, mass, F_yn, 
-                                       log_minv=-3, log_maxv=None, log_stepv=0.02)
-    return lnlike
+# def ln_rv(velocity, sigvel, mass, F_yn):   
+#     global args 
+#     nbinaries = int(1e6)
+#     all_binaries = solar(args, nbinaries=nbinaries )
+#     lnlike = all_binaries.single_epoch(velocity, sigvel, mass, F_yn, 
+#                                        log_minv=-3, log_maxv=None, log_stepv=0.02)
+#     return lnlike
 
 
 def solar(args, nbinaries):
@@ -210,44 +219,44 @@ def solar(args, nbinaries):
     - `nbinaries`: number of orbital parameters to draw.
     """
     properties = OrbitalParameters(nbinaries)
-    properties.draw_period(args, 'Raghavan10')
-    properties.draw_mass_ratio(args, 'Reggiani13')
+    properties.draw_period(args)
+    properties.draw_mass_ratio(args)
     properties.draw_eccentricities(args)
     return properties
 
-def rv_max_like(nll, initial):
-    """get maximum likelihood answer
-    not useful, you shouldn't use it
-    """
-    print('---------------------------------------------')
-    print('Now finding the maximum likelihood for RV...')
+# def rv_max_like(nll, initial):
+#     """get maximum likelihood answer
+#     not useful, you shouldn't use it
+#     """
+#     print('---------------------------------------------')
+#     print('Now finding the maximum likelihood for RV...')
     
-    soln = opti.minimize(nll, initial)
-    max_vmean, max_vdisp, max_fbin, max_vmean_f, max_vdisp_f = soln.x
-    print(f'RV maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}\n')
-    run_max = 1
+#     soln = opti.minimize(nll, initial)
+#     max_vmean, max_vdisp, max_fbin, max_vmean_f, max_vdisp_f = soln.x
+#     print(f'RV maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}\n')
+#     run_max = 1
     
-    initial = np.array([max_vmean, max_vdisp, max_fbin, max_vmean_f, 
-                        max_vdisp_f]).T # initial samples
+#     initial = np.array([max_vmean, max_vdisp, max_fbin, max_vmean_f, 
+#                         max_vdisp_f]).T # initial samples
     
-    return initial, run_max, max_vmean, max_vmean_f
+#     return initial, run_max, max_vmean, max_vmean_f
 
-def pm_max_like(nll, initial, rxORdec='RA'):
-    """get maximum likelihood answer
-    not useful, you shouldn't use it
-    """
-    print('---------------------------------------------')
-    print('Now finding the maximum likelihood for pm{rxORdec}...')
+# def pm_max_like(nll, initial, rxORdec='RA'):
+#     """get maximum likelihood answer
+#     not useful, you shouldn't use it
+#     """
+#     print('---------------------------------------------')
+#     print('Now finding the maximum likelihood for pm{rxORdec}...')
     
-    soln = opti.minimize(nll, initial, args=(pmra, epmra))
-    max_vmean, max_vdisp, max_vmean_f, max_vdisp_f = soln.x
-    print(f'pm{rxORdec} maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}\n')
-    run_max = 1
+#     soln = opti.minimize(nll, initial, args=(pmra, epmra))
+#     max_vmean, max_vdisp, max_vmean_f, max_vdisp_f = soln.x
+#     print(f'pm{rxORdec} maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, vmean_f={max_vmean_f:1.2f}, vdisp_f={max_vdisp_f:1.2f}\n')
+#     run_max = 1
     
-    initial = np.array([max_vmean, max_vdisp, max_vmean_f, 
-                        max_vdisp_f]).T # initial samples
+#     initial = np.array([max_vmean, max_vdisp, max_vmean_f, 
+#                         max_vdisp_f]).T # initial samples
     
-    return initial, run_max, max_vmean, max_vmean_f
+#     return initial, run_max, max_vmean, max_vmean_f
 
 def clean_h5(dd):
     # remove previous .h5 file to save space
@@ -271,8 +280,11 @@ if __name__ == "__main__":
                         help="Enter your filename you wish you use under ./Input/", type=str)
 
     parser.add_argument('-rv',       dest="rv",         action="store",
-                        help="RV initial parameters [vmean,vdisp,vmean_f,vdisp_f,fbin]",
+                        help="RV initial parameters [vmean,vdisp,vmean_f,vdisp_f]",
                         type=str,   default='' )
+    parser.add_argument('-fbin',       dest="fbin",         action="store",
+                        help="finary fraction, from 0-->1, default = 0.5",
+                        type=float,   default=0.5)
 
     parser.add_argument('-pmra',       dest="pmra",         action="store",
                         help="pmRA initial parameters [mean,dispertion,mean_f,dispertion_f]",
@@ -314,20 +326,18 @@ if __name__ == "__main__":
 
     os.environ["OMP_NUM_THREADS"] = "1"
     
-
-
     if len(args.rv) != 0:
         doRV = 1
         unpackRV = np.array(ast.literal_eval(args.rv),  dtype=str)
-        if len(unpackRV)==5:
-            vmean, vdisp, vmean_f, vdisp_f, fbin = np.array(
+        if len(unpackRV)==4:
+            vmean, vdisp, vmean_f, vdisp_f = np.array(
                                         ast.literal_eval(args.rv), dtype=str)
-            F_yn = 1
-            print('Do the field star fit...')
+            doFieldStars = 1
+            print('\nDo the field star fit...')
         else:
-            vmean, vdisp, fbin = np.array(ast.literal_eval(args.rv),  dtype=str)
-            F_yn = 0
-            print('Skip the field star fit...')
+            vmean, vdisp = np.array(ast.literal_eval(args.rv),  dtype=str)
+            doFieldStars = 0
+            print('\nSkip the field star fit...')
     else:
         doRV = 0
         
@@ -354,7 +364,10 @@ if __name__ == "__main__":
     # mcmc setting 
     nwalkers, nstep, nburn, fnrv, fnpmra, fnpmdec = mcmc_setting(args)
 
+    # number of binaries to draw in MC
     nbinaries = int(1e6)
+    print(f'Draw {nbinaries} binaries for MC...')
+
     if args.mode.lower() == 'solar':
         all_binaries = solar(args, nbinaries=nbinaries )
         print('Using the "single_epoch" mode to fit... \n')
@@ -364,17 +377,18 @@ if __name__ == "__main__":
                 clean_h5(fnrv)
             except FileNotFoundError:
                 pass
-            lnlike = all_binaries.single_epoch(velocity, sigvel, mass, F_yn, 
-                                           log_minv=-3, log_maxv=None, 
-                                           log_stepv=0.02)
+            # get ln likelihood for observed single-epoch radial velocity distribution
+            single_epoch_lnlike = all_binaries.single_epoch(
+                velocity, sigvel, mass, doFieldStars, 
+                log_minv=-3, log_maxv=None, log_stepv=0.02)
 
-            nll = lambda *argsss: -lnlike(*argsss)
+            nll = lambda *argsss: -single_epoch_lnlike(*argsss)
             
-            if F_yn :
+            if doFieldStars :
                 # initial guess
                 initial = np.array([float(vmean),
                                     float(vdisp),
-                                    float(fbin),
+                                    # float(fbin),
                                     float(vmean_f),
                                     float(vdisp_f)  ]).T # initial guess
 
@@ -399,9 +413,10 @@ if __name__ == "__main__":
                 with Pool() as pool:
                     # if not run_max:
                     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_rv,
-                                                    args=(lnlike, 
+                                                    args=(single_epoch_lnlike, 
                                                           initial[0],
-                                                          initial[3]),
+                                                          initial[2],
+                                                          args.fbin),
                                                     backend=backend, pool=pool)
                     
                     # sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_rv,
@@ -416,11 +431,14 @@ if __name__ == "__main__":
                 # initial guess
                 initial = np.array([float(vmean),
                                     float(vdisp),
-                                    float(fbin)  ]).T # initial samples
+                                    # float(fbin)  
+                                    ]).T # initial samples
 
                 soln = opti.minimize(nll, initial)
-                max_vmean, max_vdisp, max_fbin = soln.x
-                print(f'RV maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}\n')
+                # max_vmean, max_vdisp, max_fbin = soln.x
+                # print(f'RV maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}, fbin={max_fbin:1.2f}\n')
+                max_vmean, max_vdisp = soln.x
+                print(f'RV maximum likelihood values: vmean={max_vmean:1.2f}, vdisp={max_vdisp:1.2f}\n')
 
         #-----------------------------------------------------------------------------------
         if doPMra :

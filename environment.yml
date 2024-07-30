@@ -3,12 +3,14 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.7
+  - python=3.8
   - astropy 
   - emcee
   - matplotlib
   - numpy
   - scipy
   - pip
+  - h5py
   - pip:
     - corner
+    -tqdm

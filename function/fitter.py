@@ -92,9 +92,9 @@ class BinaryFit(object):
         fbin_mult = fbin_all[~self.is_single] if fbin_all.size > 1 else fbin_all
         return np.sum(np.log(1 - fbin_sin * self.pdet_single)) + np.sum(np.log(fbin_mult * self.pdet_rvvar))
 
-    def __call__(self, x):
+    def __call__(self, x, fbin):
         # vmean, vdisp, fbin = x
-        vmean, vdisp, fbin, vmean_f, vdisp_f = x
+        vmean, vdisp, vmean_f, vdisp_f = x
         """Returns the log-likelihood that the observed radial velocity data is reproduced for a cluster with given parameters.
 
         Maximizing the returned value gives the best-fit parameters for vmean, vdisp, and fbin (assuming flat priors). These parameters can be single floats or arrays of the length of the original input velocity array.
@@ -104,8 +104,11 @@ class BinaryFit(object):
         - `vdisp`: velocity dispersion of the cluster in km/s.
         - `fbin`: binary fraction of the stars in the cluster.
         """
-        # fbin_fix = 0.5
-        return np.sum(self.individual_log_likelihood(vmean, vdisp, fbin, vmean_f, vdisp_f)) + self.log_likelihood_detection(fbin)
+        # fbin_fix = fbin
+        return np.sum(
+            self.individual_log_likelihood(
+                vmean, vdisp, fbin, vmean_f, vdisp_f)
+                ) + self.log_likelihood_detection(fbin)
 
 
 class BinaryFit_noF(object):
@@ -151,7 +154,7 @@ class BinaryFit_noF(object):
             self.is_single = is_single
 
     def individual_log_likelihood(self, vmean, vdisp, fbin):
-        f_c = 0.95
+        # f_c = 0.95
         """Computes array with the individual log-likelihoods for observing the (average) radial velocity of the observed (seemingly single) stars.
 
         Call the object for the total log-likelihood (which includes a contribution from RV-variables).
@@ -195,9 +198,9 @@ class BinaryFit_noF(object):
         fbin_mult = fbin_all[~self.is_single] if fbin_all.size > 1 else fbin_all
         return np.sum(np.log(1 - fbin_sin * self.pdet_single)) + np.sum(np.log(fbin_mult * self.pdet_rvvar))
 
-    def __call__(self, x):
+    def __call__(self, x, fbin):
         # vmean, vdisp, fbin = x
-        vmean, vdisp, fbin = x
+        vmean, vdisp = x
         """Returns the log-likelihood that the observed radial velocity data is reproduced for a cluster with given parameters.
 
         Maximizing the returned value gives the best-fit parameters for vmean, vdisp, and fbin (assuming flat priors). These parameters can be single floats or arrays of the length of the original input velocity array.
